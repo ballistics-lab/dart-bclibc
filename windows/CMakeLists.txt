@@ -8,6 +8,8 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "dart_bclibc")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
+set(BCLIBC_VERSION "a1e10fc5ead05fc59de65f5999d5f3304e62cf94")
+
 # ============================================================================
 # dart_bclibc – thin C wrapper over the embedded bclibc ballistics engine
 # ============================================================================
@@ -33,10 +35,14 @@ else()
   include(FetchContent)
   FetchContent_Declare(bclibc
     GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
-    GIT_TAG        v1.1.4
+    GIT_TAG        ${BCLIBC_VERSION}
     GIT_SHALLOW    TRUE
   )
-  FetchContent_MakeAvailable(bclibc)
+  FetchContent_GetProperties(bclibc)
+  if(NOT bclibc_POPULATED)
+    FetchContent_Populate(bclibc)
+    add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
 endif()
 
 set(dart_bclibc_bundled_libraries

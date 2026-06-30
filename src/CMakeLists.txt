@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.13)
 set(PROJECT_NAME "dart_bclibc")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
+set(BCLIBC_VERSION "a1e10fc5ead05fc59de65f5999d5f3304e62cf94")
+
 # src/ is a direct child of the package root — one level up lands on it.
 # Android Gradle resolves this path directly (no symlink traversal needed).
 get_filename_component(PACKAGE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
@@ -21,8 +23,12 @@ else()
   include(FetchContent)
   FetchContent_Declare(bclibc
     GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
-    GIT_TAG        v1.1.4
+    GIT_TAG        ${BCLIBC_VERSION}
     GIT_SHALLOW    TRUE
   )
-  FetchContent_MakeAvailable(bclibc)
+  FetchContent_GetProperties(bclibc)
+  if(NOT bclibc_POPULATED)
+    FetchContent_Populate(bclibc)
+    add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
 endif()

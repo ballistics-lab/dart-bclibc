@@ -1,4 +1,4 @@
-.PHONY: build ffigen test clean
+.PHONY: build ffigen test clean sync-bclibc
 
 # Cross-platform helpers
 ifeq ($(OS),Windows_NT)
@@ -33,3 +33,11 @@ test: build
 clean:
 	$(RM_DIR) build/bclibc
 	$(RM_DIR) lib/ffi/bclibc_bindings.g.dart
+
+# Sync BCLIBC_VERSION in all platform CMakeLists.txt to the commit the submodule
+# is currently pinned to.  Run after bumping the bclibc submodule.
+sync-bclibc:
+	$(eval REF := $(shell git submodule status bclibc | awk '{print $$1}' | tr -d '+-'))
+	@echo "Syncing BCLIBC_VERSION → $(REF)"
+	@sed -i 's/set(BCLIBC_VERSION "[^"]*")/set(BCLIBC_VERSION "$(REF)")/' \
+		linux/CMakeLists.txt windows/CMakeLists.txt src/CMakeLists.txt

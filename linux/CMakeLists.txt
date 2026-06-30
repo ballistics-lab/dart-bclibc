@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.13)
 set(PROJECT_NAME "dart_bclibc")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
+set(BCLIBC_VERSION "a1e10fc5ead05fc59de65f5999d5f3304e62cf94")
+
 # ============================================================================
 # dart_bclibc – thin C wrapper over the embedded bclibc ballistics engine
 #
@@ -55,14 +57,23 @@ else()
 
   else()
     # ── Mode 3: FetchContent (git dep — submodule not initialised) ──────────
+    # Use FetchContent_Populate + add_subdirectory directly (same as Mode 1)
+    # instead of FetchContent_MakeAvailable: in CMake 4.x, MakeAvailable runs a
+    # subbuild cmake process that sets CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
+    # to FALSE, preventing the parent project (ebalistyka) from overriding the
+    # default /usr/local install prefix with its bundle directory.
     message(STATUS "dart_bclibc: Mode 3 — fetching bclibc v1.1.4 from GitHub")
     include(FetchContent)
     FetchContent_Declare(bclibc
       GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
-      GIT_TAG        v1.1.4
+      GIT_TAG        ${BCLIBC_VERSION}
       GIT_SHALLOW    TRUE
     )
-    FetchContent_MakeAvailable(bclibc)
+    FetchContent_GetProperties(bclibc)
+    if(NOT bclibc_POPULATED)
+      FetchContent_Populate(bclibc)
+      add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
     dart_bclibc_set_bundled_lib($<TARGET_FILE:bclibc_ffi>)
   endif()
 endif()
