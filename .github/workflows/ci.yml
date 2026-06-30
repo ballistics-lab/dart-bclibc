@@ -6,9 +6,26 @@ on:
   pull_request:
 
 jobs:
-  # ── Analyze + unit tests ─────────────────────────────────────────────────────
-  test:
-    name: Analyze & Test (Linux)
+  # ── Analyze ──────────────────────────────────────────────────────────────────
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+  # ── Test: Mode 1 — submodule (pub.dev path) ──────────────────────────────────
+  test-submodule:
+    name: Test / submodule (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,15 +39,12 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang libclang-dev
+          sudo apt-get install -y cmake ninja-build clang
 
       - name: Install Dart/Flutter dependencies
         run: dart pub get
 
-      - name: Analyze
-        run: dart analyze --fatal-infos
-
-      - name: Build native library
+      - name: Build native library (Mode 1 — submodule)
         run: |
           cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=Debug -G Ninja
           cmake --build build/bclibc --parallel
@@ -38,9 +52,42 @@ jobs:
       - name: Run tests
         run: dart test
 
-  # ── Analyze + unit tests (macOS) ─────────────────────────────────────────────
+  # ── Test: Mode 3 — FetchContent (git dep path) ───────────────────────────────
+  test-fetchcontent:
+    name: Test / FetchContent (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # no submodules — simulates `dart pub get` of a git dep
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y cmake ninja-build clang
+
+      - name: Install Dart/Flutter dependencies
+        run: dart pub get
+
+      - name: Build native library (Mode 3 — FetchContent)
+        run: |
+          cmake -S linux -B build/linux \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$PWD/build/linux/lib \
+            -G Ninja
+          cmake --build build/linux --parallel
+
+      - name: Run tests
+        env:
+          BCLIBC_FFI_PATH: build/linux/lib/libbclibc_ffi.so
+        run: dart test
+
+  # ── Test: macOS ───────────────────────────────────────────────────────────────
   test-macos:
-    name: Analyze & Test (macOS)
+    name: Test / submodule (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +101,7 @@ jobs:
       - name: Install Dart/Flutter dependencies
         run: dart pub get
 
-      - name: Build native library
+      - name: Build native library (Mode 1 — submodule)
         run: |
           cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=Debug
           cmake --build build/bclibc --parallel
@@ -64,7 +111,7 @@ jobs:
 
   # ── pub.dev publish dry-run ───────────────────────────────────────────────────
   publish-dry-run:
-    name: pub.dev publish dry-run
+    name: pub.dev dry-run
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

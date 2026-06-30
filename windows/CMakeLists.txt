@@ -23,22 +23,22 @@ set(BCLIBC_ROOT "${PACKAGE_ROOT}/bclibc")
 message(STATUS "Package root: ${PACKAGE_ROOT}")
 message(STATUS "bclibc path: ${BCLIBC_ROOT}")
 
-# Existence check
-if(NOT EXISTS "${BCLIBC_ROOT}")
-    message(FATAL_ERROR "bclibc not found at ${BCLIBC_ROOT}")
+# ── Mode 1: submodule / pub.dev archive ──────────────────────────────────────
+# ── Mode 2: FetchContent (git dep — submodule not initialised) ────────────────
+if(EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
+  message(STATUS "dart_bclibc: Mode 1 — building from source at ${BCLIBC_ROOT}")
+  add_subdirectory("${BCLIBC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bclibc_build")
+else()
+  message(STATUS "dart_bclibc: Mode 2 — fetching bclibc v1.1.4 from GitHub")
+  include(FetchContent)
+  FetchContent_Declare(bclibc
+    GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
+    GIT_TAG        v1.1.4
+    GIT_SHALLOW    TRUE
+  )
+  FetchContent_MakeAvailable(bclibc)
 endif()
 
-if(NOT EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
-    message(FATAL_ERROR "bclibc CMakeLists.txt not found at ${BCLIBC_ROOT}")
-endif()
-
-# Add the bclibc subdirectory
-add_subdirectory(
-    "${BCLIBC_ROOT}"
-    "${CMAKE_CURRENT_BINARY_DIR}/bclibc_ffi_build"
-)
-
-# List of absolute paths to libraries that should be bundled with the plugin.
 set(dart_bclibc_bundled_libraries
     $<TARGET_FILE:bclibc_ffi>
     PARENT_SCOPE

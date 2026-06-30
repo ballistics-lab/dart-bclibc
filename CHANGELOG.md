@@ -26,10 +26,14 @@ First public release as a standalone package.
 - Smoke-test suite (`test/ffi_test.dart`, `test/unit_test.dart`)
 - `Makefile` with `build`, `ffigen`, `test`, `clean` targets
 
+- CI workflow (`.github/workflows/ci.yml`): analyze, submodule build, FetchContent build,
+  macOS build, pub.dev dry-run jobs
+
 ### Notes
-- Requires `bclibc` submodule to be initialised before building:
-  `git submodule update --init`
 - Platforms: Linux, Windows, Android (arm64-v8a, x86_64), iOS, macOS
 - Native library: `libbclibc_ffi.so` / `bclibc_ffi.dll` /
-  `libbclibc_ffi.dylib` — compiled from the bundled `bclibc/` submodule
-  (v1.1.4, LGPL-3.0) by each platform's own build system
+  `libbclibc_ffi.dylib` — compiled from `bclibc/` (v1.1.4, LGPL-3.0)
+- CMake build strategy (Linux/Windows/Android):
+  1. submodule present → `add_subdirectory` (pub.dev; run `git submodule update --init` before publishing)
+  2. pre-installed library found → use it (Flatpak `/app/lib`)
+  3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
