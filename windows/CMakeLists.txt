@@ -31,7 +31,7 @@ if(EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
   message(STATUS "dart_bclibc: Mode 1 — building from source at ${BCLIBC_ROOT}")
   add_subdirectory("${BCLIBC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bclibc_build")
 else()
-  message(STATUS "dart_bclibc: Mode 2 — fetching bclibc v1.1.4 from GitHub")
+  message(STATUS "dart_bclibc: Mode 2 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
   include(FetchContent)
   FetchContent_Declare(bclibc
     GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
@@ -41,10 +41,11 @@ else()
   FetchContent_GetProperties(bclibc)
   if(NOT bclibc_POPULATED)
     FetchContent_Populate(bclibc)
-    add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR} EXCLUDE_FROM_ALL)
+    add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR})
   endif()
 endif()
 
+# On Windows TARGET_FILE and TARGET_LINKER_FILE are the same (bclibc_ffi.dll).
 set(dart_bclibc_bundled_libraries
     $<TARGET_FILE:bclibc_ffi>
     PARENT_SCOPE

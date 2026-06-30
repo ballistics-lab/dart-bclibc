@@ -39,7 +39,6 @@ if(EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
   # ── Mode 1: submodule / pub.dev archive ────────────────────────────────────
   message(STATUS "dart_bclibc: Mode 1 — building from source at ${BCLIBC_ROOT}")
   add_subdirectory("${BCLIBC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bclibc_build")
-  dart_bclibc_set_bundled_lib($<TARGET_FILE:bclibc_ffi>)
 
 else()
   # ── Mode 2: pre-installed library (Flatpak / system) ───────────────────────
@@ -57,12 +56,11 @@ else()
 
   else()
     # ── Mode 3: FetchContent (git dep — submodule not initialised) ──────────
-    # Use FetchContent_Populate + add_subdirectory directly (same as Mode 1)
-    # instead of FetchContent_MakeAvailable: in CMake 4.x, MakeAvailable runs a
-    # subbuild cmake process that sets CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
-    # to FALSE, preventing the parent project (ebalistyka) from overriding the
-    # default /usr/local install prefix with its bundle directory.
-    message(STATUS "dart_bclibc: Mode 3 — fetching bclibc v1.1.4 from GitHub")
+    # Use FetchContent_Populate + add_subdirectory directly, same as Mode 1.
+    # FetchContent_MakeAvailable is intentionally avoided: in CMake 4.x it runs a
+    # subbuild cmake that sets CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT=FALSE,
+    # preventing the parent from overriding /usr/local with its bundle directory.
+    message(STATUS "dart_bclibc: Mode 3 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
     include(FetchContent)
     FetchContent_Declare(bclibc
       GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
@@ -72,8 +70,16 @@ else()
     FetchContent_GetProperties(bclibc)
     if(NOT bclibc_POPULATED)
       FetchContent_Populate(bclibc)
-      add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR} EXCLUDE_FROM_ALL)
+      add_subdirectory(${bclibc_SOURCE_DIR} ${bclibc_BINARY_DIR})
     endif()
-    dart_bclibc_set_bundled_lib($<TARGET_FILE:bclibc_ffi>)
   endif()
+endif()
+
+# bclibc sets VERSION/SOVERSION on the shared lib, which creates a versioned
+# filename (libbclibc_ffi.so.1.1.4) as the real file and .so as a symlink.
+# TARGET_LINKER_FILE resolves to the .so symlink; cmake's install(FILES) then
+# dereferences it and writes "libbclibc_ffi.so" to the bundle lib dir, which
+# is the name DynamicLibrary.open() expects at runtime.
+if(TARGET bclibc_ffi)
+  dart_bclibc_set_bundled_lib($<TARGET_LINKER_FILE:bclibc_ffi>)
 endif()

@@ -74,15 +74,13 @@ jobs:
 
       - name: Build native library (Mode 3 — FetchContent)
         run: |
-          cmake -S linux -B build/linux \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$PWD/build/linux/lib \
-            -G Ninja
+          cmake -S linux -B build/linux -DCMAKE_BUILD_TYPE=Debug -G Ninja
           cmake --build build/linux --parallel
 
       - name: Run tests
         env:
-          BCLIBC_FFI_PATH: build/linux/lib/libbclibc_ffi.so
+          # TARGET_LINKER_FILE (.so symlink) is what gets bundled; point tests at it
+          BCLIBC_FFI_PATH: build/linux/_deps/bclibc-build/libbclibc_ffi.so
         run: dart test
 
   # ── Test: macOS ───────────────────────────────────────────────────────────────
