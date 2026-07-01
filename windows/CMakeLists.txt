@@ -45,16 +45,13 @@ else()
   endif()
 endif()
 
-# On Windows TARGET_FILE and TARGET_LINKER_FILE are the same (bclibc_ffi.dll).
-# DLLs live in the bundle root alongside the executable — DESTINATION "." is
-# relative to CMAKE_INSTALL_PREFIX (the bundle dir set by the app's CMakeLists).
+# Declare the DLL as a bundled library — Flutter's generated_plugins.cmake
+# collects dart_bclibc_bundled_libraries into PLUGIN_BUNDLED_LIBRARIES and the
+# app's CMakeLists installs it to the bundle root via the standard loop.
 # flutter_assemble is wired before the main binary, so hooking bclibc_ffi onto
 # it ensures Visual Studio builds bclibc_ffi whenever it builds the app.
 if(TARGET bclibc_ffi)
   set(dart_bclibc_bundled_libraries $<TARGET_FILE:bclibc_ffi> PARENT_SCOPE)
-  install(FILES "$<TARGET_FILE:bclibc_ffi>"
-    DESTINATION .
-    COMPONENT Runtime)
   if(TARGET flutter_assemble)
     add_dependencies(flutter_assemble bclibc_ffi)
   endif()

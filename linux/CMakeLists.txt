@@ -75,18 +75,14 @@ else()
   endif()
 endif()
 
-# TARGET_FILE gives the real versioned file (e.g. libbclibc_ffi.so.0); RENAME
-# installs it as "libbclibc_ffi.so" — the name DynamicLibrary.open() expects.
-# Using TARGET_FILE + RENAME avoids the cmake < 3.21 behaviour where
-# install(FILES symlink) copies the symlink itself (not its target), which
-# would produce a broken symlink in the bundle when the versioned .so.X is
-# absent.
+# install(TARGETS ... LIBRARY) installs the real versioned file together with
+# its soname and namelink symlinks — all to the same DESTINATION, so the
+# symlink chain stays valid inside the Flutter bundle.
 # DESTINATION is intentionally relative: install() runs while the plugin is
 # add_subdirectory'd, before the consumer sets INSTALL_BUNDLE_LIB_DIR. The
 # relative path is resolved against CMAKE_INSTALL_PREFIX at install time.
 if(TARGET bclibc_ffi)
-  install(FILES "$<TARGET_FILE:bclibc_ffi>"
-    DESTINATION lib
-    RENAME "libbclibc_ffi.so"
+  install(TARGETS bclibc_ffi
+    LIBRARY DESTINATION lib
     COMPONENT Runtime)
 endif()

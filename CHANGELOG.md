@@ -10,13 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0-beta.5] - 2026-07-02
 
 ### Fixed
-- `linux/CMakeLists.txt`: `install(FILES "$<TARGET_LINKER_FILE:bclibc_ffi>")` was
-  copying the `.so` symlink itself (not its target) — cmake < 3.21 does not
-  follow symlinks in `install(FILES)` without `FOLLOW_SYMLINK_CHAIN`. The result
-  was a broken symlink (`libbclibc_ffi.so → libbclibc_ffi.so.0`) in the Flutter
-  bundle with no real library file alongside it, causing `DynamicLibrary.open()`
-  to fail at runtime. Fixed by switching to `$<TARGET_FILE:bclibc_ffi>` with
-  `RENAME "libbclibc_ffi.so"`, which copies the actual ELF binary.
+- `linux/CMakeLists.txt`: beta.4 used `install(FILES "$<TARGET_LINKER_FILE:bclibc_ffi>")`,
+  which copies the `.so` namelink itself (not its target) in cmake < 3.21 — producing a
+  broken symlink in the Flutter bundle (`libbclibc_ffi.so → libbclibc_ffi.so.0`) with no
+  real library present, causing `DynamicLibrary.open()` to fail at runtime. Fixed by
+  switching to `install(TARGETS bclibc_ffi LIBRARY DESTINATION lib)`, which installs the
+  real versioned file together with its soname and namelink symlinks into the same
+  directory — matching the standard Linux shared library layout and keeping the symlink
+  chain valid.
+- `windows/CMakeLists.txt`: beta.4 added a redundant `install(FILES bclibc_ffi.dll
+  DESTINATION .)` that doubled up with the standard `PLUGIN_BUNDLED_LIBRARIES` install
+  loop already present in every Flutter app's `windows/CMakeLists.txt`. Removed the
+  explicit `install()` call; the DLL is now delivered exclusively via
+  `dart_bclibc_bundled_libraries → PLUGIN_BUNDLED_LIBRARIES`, matching the behaviour
+  of the previous `bclibc_ffi` local package.
 
 ## [0.1.0-beta.4] - 2026-07-02
 

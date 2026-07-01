@@ -190,8 +190,12 @@ cmake --build build/bclibc --parallel
 ```
 
 > For Flutter apps the native library is built and bundled automatically by `flutter build`.
-> No changes to the app's platform `CMakeLists.txt` are required — the library registers its own
-> CMake install rules on Linux and Windows; Android is handled by Gradle.
+> No changes to the app's platform `CMakeLists.txt` are required.
+> On Linux the plugin registers `install(TARGETS bclibc_ffi LIBRARY)` rules that produce
+> the standard versioned-file + soname + namelink layout in the bundle.
+> On Windows the DLL is declared via `PLUGIN_BUNDLED_LIBRARIES` and installed by the app's
+> existing loop; `add_dependencies(flutter_assemble bclibc_ffi)` ensures correct build order.
+> Android is handled by Gradle/AGP without any `install()` rules.
 
 #### Consuming apps: `flutter test` / `dart test`
 
