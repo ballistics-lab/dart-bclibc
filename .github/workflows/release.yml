@@ -39,7 +39,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push version bump commit
-      id-token: write # pub.dev OIDC trusted publisher
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
       version: ${{ steps.meta.outputs.version }}
@@ -102,6 +101,40 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           body_path: /tmp/release_notes.md
           prerelease: ${{ steps.meta.outputs.prerelease }}
+
+  publish:
+    name: Publish to pub.dev
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # pub.dev OIDC trusted publisher
+    steps:
+      # `main` at this point already has the version bump `prepare` pushed —
+      # the pushed tag itself still points at the pre-bump commit, so we
+      # can't just let this default to `github.ref`.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          submodules: recursive
+
+      # dart-lang/setup-dart requests and configures the OIDC token pub.dev's
+      # trusted-publisher flow needs — this is the piece that was missing
+      # before; subosito/flutter-action (below) never provisions it.
+      - uses: dart-lang/setup-dart@v1
+
+      # Flutter SDK is required to resolve `flutter: sdk: flutter` in
+      # pubspec.yaml. Its bundled `dart` binary shadows the one from
+      # setup-dart on PATH, but both read the same pub credentials that
+      # setup-dart just wrote.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Publish - dry run
+        run: dart pub publish --dry-run
 
       - name: Publish to pub.dev
         run: dart pub publish --force
