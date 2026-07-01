@@ -80,6 +80,15 @@ endif()
 # TARGET_LINKER_FILE resolves to the .so symlink; cmake's install(FILES) then
 # dereferences it and writes "libbclibc_ffi.so" to the bundle lib dir, which
 # is the name DynamicLibrary.open() expects at runtime.
+#
+# DESTINATION is intentionally relative (not ${INSTALL_BUNDLE_LIB_DIR}): this
+# install() runs while the plugin is add_subdirectory'd, before the consumer's
+# CMakeLists.txt sets INSTALL_BUNDLE_LIB_DIR. The relative path is resolved
+# against CMAKE_INSTALL_PREFIX at install time — which by then is the bundle
+# directory set by the consuming app.
 if(TARGET bclibc_ffi)
   dart_bclibc_set_bundled_lib($<TARGET_LINKER_FILE:bclibc_ffi>)
+  install(FILES "$<TARGET_LINKER_FILE:bclibc_ffi>"
+    DESTINATION lib
+    COMPONENT Runtime)
 endif()

@@ -189,7 +189,9 @@ cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=Release
 cmake --build build/bclibc --parallel
 ```
 
-> For Flutter apps the native library is built automatically by `flutter build` — no manual step needed.
+> For Flutter apps the native library is built and bundled automatically by `flutter build`.
+> No changes to the app's platform `CMakeLists.txt` are required — the library registers its own
+> CMake install rules on Linux and Windows; Android is handled by Gradle.
 
 #### Consuming apps: `flutter test` / `dart test`
 

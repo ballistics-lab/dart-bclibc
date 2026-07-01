@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-beta.3] - 2026-07-26
+## [0.1.0-beta.4] - 2026-07-02
+
+### Changed
+- `linux/CMakeLists.txt` and `windows/CMakeLists.txt` now register their own
+  CMake `install()` rules for `bclibc_ffi`, so consuming Flutter apps no longer
+  need to add manual `install(TARGETS bclibc_ffi …)` blocks to their platform
+  `CMakeLists.txt`. On Windows, `add_dependencies(flutter_assemble bclibc_ffi)`
+  is also registered automatically, preserving the correct build order in
+  Visual Studio. Android is unaffected — the Gradle/AGP native build collects
+  shared library targets from the CMake project without `install()`.
+
+## [0.1.0-beta.3] - 2026-07-01
 
 ### Fixed
 - `bin/build_native.dart` resolved its own package root via `Platform.script`,
@@ -19,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which goes through the actual `package_config.json` resolution and works
   regardless of pub-cache vs. path dependency vs. snapshot caching.
 
-## [0.1.0-beta.2] - 2026-07-26
+## [0.1.0-beta.2] - 2026-07-01
 
 ### Added
 - `bin/build_native.dart` — `dart run dart_bclibc:build_native` builds the
@@ -71,7 +82,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.3...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/releases/tag/v0.1.0-beta.1
