@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-07-02
+
+### Fixed
+- `linux/CMakeLists.txt`: `install(FILES "$<TARGET_LINKER_FILE:bclibc_ffi>")` was
+  copying the `.so` symlink itself (not its target) — cmake < 3.21 does not
+  follow symlinks in `install(FILES)` without `FOLLOW_SYMLINK_CHAIN`. The result
+  was a broken symlink (`libbclibc_ffi.so → libbclibc_ffi.so.0`) in the Flutter
+  bundle with no real library file alongside it, causing `DynamicLibrary.open()`
+  to fail at runtime. Fixed by switching to `$<TARGET_FILE:bclibc_ffi>` with
+  `RENAME "libbclibc_ffi.so"`, which copies the actual ELF binary.
+
 ## [0.1.0-beta.4] - 2026-07-02
 
 ### Changed
@@ -82,7 +93,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...v0.1.0-beta.2

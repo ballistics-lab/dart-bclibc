@@ -75,20 +75,18 @@ else()
   endif()
 endif()
 
-# bclibc sets VERSION/SOVERSION on the shared lib, which creates a versioned
-# filename (libbclibc_ffi.so.1.1.4) as the real file and .so as a symlink.
-# TARGET_LINKER_FILE resolves to the .so symlink; cmake's install(FILES) then
-# dereferences it and writes "libbclibc_ffi.so" to the bundle lib dir, which
-# is the name DynamicLibrary.open() expects at runtime.
-#
-# DESTINATION is intentionally relative (not ${INSTALL_BUNDLE_LIB_DIR}): this
-# install() runs while the plugin is add_subdirectory'd, before the consumer's
-# CMakeLists.txt sets INSTALL_BUNDLE_LIB_DIR. The relative path is resolved
-# against CMAKE_INSTALL_PREFIX at install time — which by then is the bundle
-# directory set by the consuming app.
+# TARGET_FILE gives the real versioned file (e.g. libbclibc_ffi.so.0); RENAME
+# installs it as "libbclibc_ffi.so" — the name DynamicLibrary.open() expects.
+# Using TARGET_FILE + RENAME avoids the cmake < 3.21 behaviour where
+# install(FILES symlink) copies the symlink itself (not its target), which
+# would produce a broken symlink in the bundle when the versioned .so.X is
+# absent.
+# DESTINATION is intentionally relative: install() runs while the plugin is
+# add_subdirectory'd, before the consumer sets INSTALL_BUNDLE_LIB_DIR. The
+# relative path is resolved against CMAKE_INSTALL_PREFIX at install time.
 if(TARGET bclibc_ffi)
-  dart_bclibc_set_bundled_lib($<TARGET_LINKER_FILE:bclibc_ffi>)
-  install(FILES "$<TARGET_LINKER_FILE:bclibc_ffi>"
+  install(FILES "$<TARGET_FILE:bclibc_ffi>"
     DESTINATION lib
+    RENAME "libbclibc_ffi.so"
     COMPONENT Runtime)
 endif()
