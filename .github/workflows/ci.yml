@@ -3,7 +3,23 @@ name: CI
 on:
   push:
     branches: [main]
+    paths: &ci-paths
+      - "lib/**"
+      - "test/**"
+      - "bin/**"
+      - "src/**"
+      - "android/**"
+      - "ios/**"
+      - "linux/**"
+      - "macos/**"
+      - "windows/**"
+      - "bclibc"
+      - "pubspec.yaml"
+      - "ffigen.yaml"
+      - "Makefile"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths: *ci-paths
 
 jobs:
   # ── Analyze ──────────────────────────────────────────────────────────────────

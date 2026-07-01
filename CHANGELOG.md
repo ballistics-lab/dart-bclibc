@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-07-26
+
 ### Added
 - `bin/build_native.dart` — `dart run dart_bclibc:build_native` builds the
   standalone `libbclibc_ffi` shared library into `build/bclibc/`, for
@@ -57,5 +59,6 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...HEAD
+[0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/releases/tag/v0.1.0-beta.1
