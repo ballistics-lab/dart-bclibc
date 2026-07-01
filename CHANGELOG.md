@@ -72,6 +72,6 @@ First public release as a standalone package.
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
 [Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.3...HEAD
-[0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...v0.1.0-beta.3
+[0.1.0-beta.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/releases/tag/v0.1.0-beta.1
