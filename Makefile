@@ -13,10 +13,12 @@ BUILD_TYPE ?= Debug
 
 # Build the native shared library via CMake (used by ffigen and dart tests).
 # For flutter apps, the library is built automatically by flutter build.
+# Consuming packages should use `dart run dart_bclibc:build_native` instead
+# (see bin/build_native.dart) — this target additionally initializes the
+# bclibc submodule, which only applies to a local clone of this repo.
 build:
 	git submodule update --init
-	cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
-	cmake --build build/bclibc --parallel $(NPROC)
+	dart run bin/build_native.dart $(BUILD_TYPE)
 
 # Re-generate Dart FFI bindings from the C header.
 # Requires LLVM/Clang:
@@ -29,6 +31,9 @@ ffigen: build
 # Run Dart tests (native library must be built first).
 test: build
 	dart test
+
+format:
+	dart format bin/ lib/
 
 clean:
 	$(RM_DIR) build/bclibc

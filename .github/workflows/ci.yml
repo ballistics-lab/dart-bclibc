@@ -11,7 +11,7 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -28,7 +28,7 @@ jobs:
     name: Test / submodule (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -39,15 +39,13 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang
+          sudo apt-get install -y cmake clang
 
       - name: Install Dart/Flutter dependencies
         run: dart pub get
 
       - name: Build native library (Mode 1 — submodule)
-        run: |
-          cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=Debug -G Ninja
-          cmake --build build/bclibc --parallel
+        run: dart run bin/build_native.dart
 
       - name: Run tests
         run: dart test
@@ -57,7 +55,7 @@ jobs:
     name: Test / FetchContent (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # no submodules — simulates `dart pub get` of a git dep
 
       - uses: subosito/flutter-action@v2
@@ -88,7 +86,7 @@ jobs:
     name: Test / submodule (macOS)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -100,9 +98,7 @@ jobs:
         run: dart pub get
 
       - name: Build native library (Mode 1 — submodule)
-        run: |
-          cmake -S bclibc -B build/bclibc -DCMAKE_BUILD_TYPE=Debug
-          cmake --build build/bclibc --parallel
+        run: dart run bin/build_native.dart
 
       - name: Run tests
         run: dart test
@@ -112,7 +108,7 @@ jobs:
     name: pub.dev dry-run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 

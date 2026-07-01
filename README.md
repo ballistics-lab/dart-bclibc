@@ -33,6 +33,7 @@ A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-D
   - [Prerequisites](#prerequisites)
   - [Clone](#clone)
   - [Build native library](#build-native-library)
+    - [Consuming apps: flutter test / dart test](#consuming-apps-flutter-test--dart-test)
   - [Regenerate FFI bindings](#regenerate-ffi-bindings)
   - [Run tests](#run-tests)
 - [Native library](#native-library)
@@ -189,6 +190,28 @@ cmake --build build/bclibc --parallel
 ```
 
 > For Flutter apps the native library is built automatically by `flutter build` — no manual step needed.
+
+#### Consuming apps: `flutter test` / `dart test`
+
+`flutter build`/`flutter run` bundle the native library automatically, but
+`flutter test`/`dart test` never run a platform build, so apps that depend on
+`dart_bclibc` need to build it explicitly before testing:
+
+```bash
+dart run dart_bclibc:build_native
+```
+
+This builds `libbclibc_ffi` into `build/bclibc/` relative to your project's
+working directory — one of the paths `BcLibC.open()` checks automatically.
+Wire it into your test target, e.g. in a `Makefile`:
+
+```makefile
+test: build-bclibc
+	flutter test
+
+build-bclibc:
+	dart run dart_bclibc:build_native
+```
 
 ### Regenerate FFI bindings
 
