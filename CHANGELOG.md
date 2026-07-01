@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.3] - 2026-07-26
+
+### Fixed
+- `bin/build_native.dart` resolved its own package root via `Platform.script`,
+  which points at a cached kernel snapshot in the *caller's*
+  `.dart_tool/pub/bin/` — not this file's real location in pub-cache — when
+  invoked as `dart run dart_bclibc:build_native` from a consuming project
+  (as opposed to running it directly from within this repo, which is how it
+  was tested for 0.1.0-beta.2). Switched to `Isolate.resolvePackageUri`,
+  which goes through the actual `package_config.json` resolution and works
+  regardless of pub-cache vs. path dependency vs. snapshot caching.
+
 ## [0.1.0-beta.2] - 2026-07-26
 
 ### Added
@@ -59,6 +71,7 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.3...HEAD
+[0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/releases/tag/v0.1.0-beta.1

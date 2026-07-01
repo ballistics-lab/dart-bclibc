@@ -12,17 +12,27 @@
 // Usage: dart run dart_bclibc:build_native [BUILD_TYPE]
 // BUILD_TYPE defaults to the BCLIBC_BUILD_TYPE env var, or "Debug".
 import 'dart:io';
+import 'dart:isolate';
 
-void main(List<String> args) {
+void main(List<String> args) async {
   final buildType = args.isNotEmpty
       ? args[0]
       : Platform.environment['BCLIBC_BUILD_TYPE'] ?? 'Debug';
 
-  // Platform.script resolves to this file's own location, whether dart_bclibc
-  // was resolved from pub-cache or a local path dependency — unlike parsing
-  // .dart_tool/package_config.json from the caller's side, this works
-  // regardless of which package invokes `dart run dart_bclibc:build_native`.
-  final packageRoot = Platform.script.resolve('..');
+  // `dart run dart_bclibc:build_native` compiles this script to a kernel
+  // snapshot cached under the *caller's* .dart_tool/pub/bin/ — Platform.script
+  // then points at that snapshot, not at this file's real location in
+  // pub-cache. Isolate.resolvePackageUri goes through the actual
+  // package_config.json resolution instead, so it's correct regardless of
+  // pub-cache vs. path dependency vs. snapshot caching.
+  final libUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:dart_bclibc/bclibc.dart'),
+  );
+  if (libUri == null) {
+    stderr.writeln('error: could not resolve package:dart_bclibc');
+    exit(1);
+  }
+  final packageRoot = libUri.resolve('..');
   // Trailing slash matters: without it, Uri.resolve treats "bclibc" as a
   // file segment and the next .resolve() call drops it instead of
   // appending to it.
