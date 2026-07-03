@@ -6,7 +6,7 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 
 [![License]](LICENSE)
 [![Pub Version]][pub package]
-[![powered by bclibc]](bclibc)
+[![powered by bclibc]][bclibc repo]
 
 ![Linux] ![Windows] ![Android] ![iOS] ![macOS]
 
