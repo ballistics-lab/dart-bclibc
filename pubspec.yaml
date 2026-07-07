@@ -1,11 +1,11 @@
 name: dart_bclibc
-description: "Dart FFI bindings for the bclibc ballistics engine. Provides a thin, zero-copy Dart wrapper around libbclibc_ffi with full trajectory integration, zero-finding, and apex/max-range solvers."
+description: "Dart FFI bindings for the bclibc ballistics engine."
 version: 0.1.0
 repository: https://github.com/ballistics-lab/dart-bclibc
 
 environment:
   sdk: ^3.11.4
-  flutter: '>=3.3.0'
+  flutter: ">=3.3.0"
 
 dependencies:
   ffi: ^2.2.0
