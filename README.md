@@ -80,48 +80,48 @@ for (final pt in hit.trajectory) {
 
 ### Input types
 
-| Dart type | Description |
-|---|---|
-| `BcShot` | Preferred shot input (natural units). All physics conversion — atmosphere density, Coriolis trig, PCHIP drag curve, cant — is performed inside C++ via `BCLIBCFFI_Shot::to_shot_props()`. |
-| `BcShotProps` | Legacy shot input (pre-computed `BcAtmosphere`/`BcCoriolis` structs). |
-| `BcTrajectoryRequest` | Step size, range limit, and `BCLIBCFFI_TrajFlag` filter bitmask. |
-| `BcConfig` | Solver knobs (step multiplier, accuracy, gravity constant, etc.). |
-| `BcDragPoint` | One Mach / CD entry for the drag table. |
-| `BcWind` | One wind segment (velocity, direction, distance bounds). |
+| Dart type             | Description                                                                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BcShot`              | Preferred shot input (natural units). All physics conversion — atmosphere density, Coriolis trig, PCHIP drag curve, cant — is performed inside C++ via `BCLIBCFFI_Shot::to_shot_props()`. |
+| `BcShotProps`         | Legacy shot input (pre-computed `BcAtmosphere`/`BcCoriolis` structs).                                                                                                                     |
+| `BcTrajectoryRequest` | Step size, range limit, and `BCLIBCFFI_TrajFlag` filter bitmask.                                                                                                                          |
+| `BcConfig`            | Solver knobs (step multiplier, accuracy, gravity constant, etc.).                                                                                                                         |
+| `BcDragPoint`         | One Mach / CD entry for the drag table.                                                                                                                                                   |
+| `BcWind`              | One wind segment (velocity, direction, distance bounds).                                                                                                                                  |
 
 ### Result types
 
-| Dart type | Description |
-|---|---|
-| `BcTrajectoryData` | One filtered trajectory record. |
-| `BcHitResult` | Full trajectory list + `BCLIBCFFI_TerminationReason`. |
-| `BcInterception` | Single interpolated point from `integrateAtShot`. |
+| Dart type          | Description                                           |
+| ------------------ | ----------------------------------------------------- |
+| `BcTrajectoryData` | One filtered trajectory record.                       |
+| `BcHitResult`      | Full trajectory list + `BCLIBCFFI_TerminationReason`. |
+| `BcInterception`   | Single interpolated point from `integrateAtShot`.     |
 | `BcMaxRangeResult` | Max range (ft) + angle (rad) from `findMaxRangeShot`. |
 
 ### `BcLibC` methods
 
-| Method | Description |
-|---|---|
-| `BcLibC.open()` | Load the native library (call once at startup). |
-| `integrateShot(BcShot, BcTrajectoryRequest)` | Full filtered trajectory. |
-| `integrateAtShot(BcShot, key, value)` | Single interpolated point at a trajectory key. |
-| `findZeroAngleShot(BcShot, distanceFt)` | Barrel elevation to zero at distance. |
-| `findApexShot(BcShot)` | Highest point of the trajectory arc. |
-| `findMaxRangeShot(BcShot)` | Maximum range and corresponding angle. |
-| `getCorrection(distanceFt, offsetFt)` | Angular correction (rad) for a linear offset. |
-| `calculateEnergy(grains, fps)` | Kinetic energy (ft-lb). |
-| `calculateOgw(grains, fps)` | Optimal Game Weight. |
+| Method                                       | Description                                     |
+| -------------------------------------------- | ----------------------------------------------- |
+| `BcLibC.open()`                              | Load the native library (call once at startup). |
+| `integrateShot(BcShot, BcTrajectoryRequest)` | Full filtered trajectory.                       |
+| `integrateAtShot(BcShot, key, value)`        | Single interpolated point at a trajectory key.  |
+| `findZeroAngleShot(BcShot, distanceFt)`      | Barrel elevation to zero at distance.           |
+| `findApexShot(BcShot)`                       | Highest point of the trajectory arc.            |
+| `findMaxRangeShot(BcShot)`                   | Maximum range and corresponding angle.          |
+| `getCorrection(distanceFt, offsetFt)`        | Angular correction (rad) for a linear offset.   |
+| `calculateEnergy(grains, fps)`               | Kinetic energy (ft-lb).                         |
+| `calculateOgw(grains, fps)`                  | Optimal Game Weight.                            |
 
 Legacy `BcShotProps`-based overloads (`findApex`, `findMaxRange`, etc.) are retained for backwards compatibility.
 
 ### Enums
 
-| Dart enum | Description |
-|---|---|
-| `BCLIBCFFI_TrajFlag` | Trajectory filter flags (`BCLIBCFFI_TRAJ_FLAG_RANGE`, `BCLIBCFFI_TRAJ_FLAG_APEX`, …) |
-| `BCLIBCFFI_TerminationReason` | Why integration stopped. |
-| `BCLIBCFFI_BaseTrajInterpKey` | Key field selector for `integrateAtShot`. |
-| `BCLIBCFFI_IntegrationMethod` | `BCLIBCFFI_INTEGRATION_RK4` (default) or `BCLIBCFFI_INTEGRATION_EULER`. |
+| Dart enum                     | Description                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `BCLIBCFFI_TrajFlag`          | Trajectory filter flags (`BCLIBCFFI_TRAJ_FLAG_RANGE`, `BCLIBCFFI_TRAJ_FLAG_APEX`, …) |
+| `BCLIBCFFI_TerminationReason` | Why integration stopped.                                                             |
+| `BCLIBCFFI_BaseTrajInterpKey` | Key field selector for `integrateAtShot`.                                            |
+| `BCLIBCFFI_IntegrationMethod` | `BCLIBCFFI_INTEGRATION_RK4` (default) or `BCLIBCFFI_INTEGRATION_EULER`.              |
 
 ---
 
@@ -241,13 +241,13 @@ make test
 
 ## Native library
 
-| Platform | Library name |
-|---|---|
-| Linux | `libbclibc_ffi.so` |
-| Android | `libbclibc_ffi.so` |
-| macOS | `libbclibc_ffi.dylib` |
-| iOS | `libbclibc_ffi.dylib` |
-| Windows | `bclibc_ffi.dll` |
+| Platform | Library name          |
+| -------- | --------------------- |
+| Linux    | `libbclibc_ffi.so`    |
+| Android  | `libbclibc_ffi.so`    |
+| macOS    | `libbclibc_ffi.dylib` |
+| iOS      | `libbclibc_ffi.dylib` |
+| Windows  | `bclibc_ffi.dll`      |
 
 During development the path can be overridden via the `BCLIBC_FFI_PATH` environment variable.
 
@@ -255,11 +255,11 @@ During development the path can be overridden via the `BCLIBC_FFI_PATH` environm
 
 ## Dependencies
 
-| Dependency | Role |
-|---|---|
-| [bclibc](https://github.com/ballistics-lab/bclibc) v1.1.4 | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
-| [ffi](https://pub.dev/packages/ffi) | Dart ↔ C FFI bindings |
-| [plugin_platform_interface](https://pub.dev/packages/plugin_platform_interface) | Flutter plugin platform interface |
+| Dependency                                                                      | Role                                                                                         |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [bclibc](https://github.com/ballistics-lab/bclibc) v1.1.5                       | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
+| [ffi](https://pub.dev/packages/ffi)                                             | Dart ↔ C FFI bindings                                                                        |
+| [plugin_platform_interface](https://pub.dev/packages/plugin_platform_interface) | Flutter plugin platform interface                                                            |
 
 ---
 

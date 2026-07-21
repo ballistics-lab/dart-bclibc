@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Pin `bclibc` to `v1.1.5` 
+
 ## [0.1.0] - 2026-07-03
 
 First stable release. No functional changes since 0.1.0-beta.5 — the API,
@@ -100,7 +103,7 @@ First public release as a standalone package.
 ### Notes
 - Platforms: Linux, Windows, Android (arm64-v8a, x86_64), iOS, macOS
 - Native library: `libbclibc_ffi.so` / `bclibc_ffi.dll` /
-  `libbclibc_ffi.dylib` — compiled from `bclibc/` (v1.1.4, LGPL-3.0)
+  `libbclibc_ffi.dylib` — compiled from `bclibc/` (v1.1.5, LGPL-3.0)
 - CMake build strategy (Linux/Windows/Android):
   1. submodule present → `add_subdirectory` (pub.dev; run `git submodule update --init` before publishing)
   2. pre-installed library found → use it (Flatpak `/app/lib`)
