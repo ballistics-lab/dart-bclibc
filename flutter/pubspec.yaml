@@ -1,0 +1,50 @@
+name: dart_bclibc_flutter
+description: "Flutter plugin wrapper for dart_bclibc — bundles the native bclibc ballistics engine and web/wasm support."
+version: 0.2.0-beta.1
+repository: https://github.com/ballistics-lab/dart-bclibc
+
+environment:
+  sdk: ^3.11.4
+  flutter: ">=3.3.0"
+
+dependencies:
+  # Real pub.dev constraint — this is what a consumer installing the
+  # published package actually resolves. dependency_overrides below is
+  # local/CI-only and never seen by anyone depending on this package.
+  dart_bclibc: ^0.2.0-beta.1
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  test: ^1.24.0
+
+dependency_overrides:
+  dart_bclibc:
+    path: ../dart
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true
+      web:
+        pluginClass: BclibcWebPlugin
+        fileName: src/bclibc_web_plugin.dart
+  assets:
+    - assets/wasm/bclibc_ffi.js
+    - assets/wasm/bclibc_ffi.wasm

@@ -5,8 +5,31 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pub" # See documentation for possible values
-    directory: "/" # Location of package manifests
+
+  # dart/ob_dump_reader's dependencies (ffi, path) and dev dependencies
+  # (test, flat_buffers). LMDB itself isn't a pub.dev dependency — it's
+  # vendored source (src/lmdb/), pinned via LMDB_VERSION at the repo root,
+  # not tracked by Dependabot (see the NOTE below).
+  - package-ecosystem: "pub"
+    directory: "/dart"
+    schedule:
+      interval: "weekly"
+    groups:
+      dart-dependencies:
+        patterns:
+          - "*"
+
+  # flutter/ob_dump_reader_flutter's real dependencies: the `flutter` SDK
+  # itself (grouped below) and `ob_dump_reader` — a real `^X.Y.Z` pub.dev
+  # constraint now (see docs/BACKLOG.md item 25), not the bare path dep it
+  # used to be, so Dependabot *would* see it — but there's nothing for it
+  # to bump: this repo's release.yml always bumps both packages' versions
+  # together in one commit, so a newer `ob_dump_reader` never exists
+  # without `flutter/pubspec.yaml`'s constraint already matching it. Its
+  # own vendored LMDB copy (src/lmdb/) is pinned via LMDB_VERSION, not a
+  # pub.dev dep either way.
+  - package-ecosystem: "pub"
+    directory: "/flutter"
     schedule:
       interval: "weekly"
     groups:
@@ -16,6 +39,9 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      flutter-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"

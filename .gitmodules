@@ -1,3 +1,6 @@
-[submodule "bclibc"]
-	path = bclibc
+[submodule "dart/bclibc"]
+	path = dart/bclibc
+	url = https://github.com/ballistics-lab/bclibc
+[submodule "flutter/bclibc"]
+	path = flutter/bclibc
 	url = https://github.com/ballistics-lab/bclibc
