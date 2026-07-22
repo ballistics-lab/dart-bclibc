@@ -1,3 +1,4 @@
+export 'package:dart_bclibc/src/async_calculator.dart';
 export 'package:dart_bclibc/src/calculator.dart';
 export 'package:dart_bclibc/src/conditions.dart';
 export 'package:dart_bclibc/src/constants.dart';
