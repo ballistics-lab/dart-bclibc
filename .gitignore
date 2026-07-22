@@ -25,13 +25,27 @@ migrate_working_dir/
 
 # Flutter/Dart/Pub related
 # Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
-/pubspec.lock
+pubspec.lock
 **/doc/api/
 .dart_tool/
 .flutter-plugins-dependencies
-/build/
-/coverage/
+.flutter-plugins
+build/
+coverage/
+
+# Native build artifacts — `dart run dart_bclibc:build_native` writes here
+# (dart/lib/native/), and a local path-dependency build can also write
+# straight into either package's own directory tree.
+lib/native/
+.cxx/
+.gradle/
+*.so
+*.dylib
+*.dll
 
 # Wasm test fixture, copied from assets/wasm/ (the checked-in package
 # asset) — see test/web/*_test.dart docstrings for the copy command.
-/test/web/assets/
+test/web/assets/
+
+# Scratch/experiment dirs (e.g. tmp/testd/ used to repro issues by hand).
+/tmp/
