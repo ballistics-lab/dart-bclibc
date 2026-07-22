@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2-alpha] - 2026-07-22
+
+### Added
+- `AsyncCalculator`: `Future`-based counterpart to `Calculator` with the same
+  three methods (`barrelElevationForTarget`, `setWeaponZero`, `fire`). On
+  native, each call runs on a fresh isolate via `Isolate.run` so heavy
+  trajectory integration doesn't block the caller's isolate (e.g. the UI
+  isolate in a Flutter app). On web it awaits the (cached) wasm engine load
+  once, then calls straight through — no isolate involved.
+- Web/wasm support: `bclibc`'s C ABI (`bclibc_ffi.h`) can now be compiled to
+  WebAssembly (see `bclibc/build_wasm.sh`) and consumed via `dart:js_interop`
+  through `BcLibCWeb` (`lib/ffi/bclibc_ffi_web.dart`) — no Embind, no
+  third-party FFI-on-web shim; it talks to the same flat `BCLIBCFFI_*`
+  exports the native `dart:ffi` binding uses. Struct field offsets aren't
+  hardcoded on the Dart side: `BCLIBCFFI_get_layout()` computes them via
+  `offsetof()`/`sizeof()` in whichever compiler built the wasm module, so the
+  binding can't silently drift from the C struct layout.
+  - The compiled wasm artifact (`assets/wasm/bclibc_ffi.js` + `.wasm`) is
+    now bundled with the package via `flutter.assets` in `pubspec.yaml`, so
+    `flutter build web` picks it up automatically.
+  - `package:dart_bclibc/bclibc.dart` conditionally excludes the native-only
+    `Calculator` / `BcLibC` / generated `dart:ffi` bindings when compiling
+    for web (`if (dart.library.js_interop)`), so importing the package
+    barrel compiles cleanly on both platforms — web consumers use
+    `AsyncCalculator`.
+  - New `test/web/` suite (`dart test -p chrome`) verifies numeric parity
+    between the wasm and native engines.
+
+### Changed
+- Internals reorganized so native and web share one conversion-logic code
+  path (`lib/src/calculator_core.dart`, `lib/ffi/bclibc_types.dart`,
+  `BcEngine` interface) instead of duplicating it — no public API changes on
+  native; `Calculator`'s constructor and methods are unchanged.
+
 ## [0.1.1] - 2026-07-21
 
 ### Changed
