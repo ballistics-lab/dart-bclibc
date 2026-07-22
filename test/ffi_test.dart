@@ -68,8 +68,7 @@ final _g7Table = [
 
 BcShot _makeShot({
   double barrelElevationRad = 0.0,
-  BCLIBCFFI_IntegrationMethod method =
-      BCLIBCFFI_IntegrationMethod.BCLIBCFFI_INTEGRATION_RK4,
+  BcIntegrationMethod method = BcIntegrationMethod.rk4,
 }) => BcShot(
   bc: 0.279,
   weightGrain: 300.0,
@@ -214,9 +213,7 @@ void main() {
     });
 
     test('EULER method also produces a trajectory', () {
-      final shot = _makeShot(
-        method: BCLIBCFFI_IntegrationMethod.BCLIBCFFI_INTEGRATION_EULER,
-      );
+      final shot = _makeShot(method: BcIntegrationMethod.euler);
       final request = BcTrajectoryRequest(
         rangeLimitFt: 500.0 * 3.28084,
         rangeStepFt: 100.0 * 3.28084,
@@ -235,7 +232,7 @@ void main() {
       final targetFt = 500.0 * 3.28084;
       final intercept = bc.integrateAtShot(
         shot,
-        BCLIBCFFI_BaseTrajInterpKey.BCLIBCFFI_INTERP_KEY_POS_X,
+        BcBaseTrajInterpKey.posX,
         targetFt,
       );
       expect(intercept.fullData.distanceFt, closeTo(targetFt, targetFt * 0.01));

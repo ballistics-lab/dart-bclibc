@@ -31,3 +31,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Wasm test fixture, copied from assets/wasm/ (the checked-in package
+# asset) — see test/web/*_test.dart docstrings for the copy command.
+/test/web/assets/

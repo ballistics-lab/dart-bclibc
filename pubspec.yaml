@@ -1,6 +1,6 @@
 name: dart_bclibc
 description: "Dart FFI bindings for the bclibc ballistics engine."
-version: 0.1.1
+version: 0.1.2-beta.1
 repository: https://github.com/ballistics-lab/dart-bclibc
 
 environment:
@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
+  web: ^1.1.1
 
 dev_dependencies:
   ffigen: ^20.1.1
@@ -33,3 +34,6 @@ flutter:
         ffiPlugin: true
       windows:
         ffiPlugin: true
+  assets:
+    - assets/wasm/bclibc_ffi.js
+    - assets/wasm/bclibc_ffi.wasm

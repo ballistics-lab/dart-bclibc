@@ -6,6 +6,7 @@ on:
     paths: &ci-paths
       - "lib/**"
       - "test/**"
+      - "assets/**"
       - "bin/**"
       - "src/**"
       - "android/**"
@@ -106,6 +107,33 @@ jobs:
           # TARGET_LINKER_FILE (.so symlink) is what gets bundled; point tests at it
           BCLIBC_FFI_PATH: build/linux/_deps/bclibc-build/libbclibc_ffi.so
         run: dart test
+
+  # ── Test: web (wasm) ─────────────────────────────────────────────────────────
+  test-web:
+    name: Test / web (Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        # no submodules — this only needs the checked-in assets/wasm/ artifact,
+        # not a native bclibc build
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Install Dart/Flutter dependencies
+        run: dart pub get
+
+      - name: Stage wasm test fixture
+        run: |
+          mkdir -p test/web/assets/packages/dart_bclibc/assets/wasm
+          cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
+            test/web/assets/packages/dart_bclibc/assets/wasm/
+
+      - name: Run web tests
+        run: dart test -p chrome test/web/
 
   # ── Test: macOS ───────────────────────────────────────────────────────────────
   test-macos:
