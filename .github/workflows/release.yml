@@ -35,9 +35,37 @@ jobs:
       - name: Run tests
         run: dart test
 
+  test-web:
+    name: Tests (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          # no submodules — this only needs the checked-in assets/wasm/
+          # artifact, not a native bclibc build
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Stage wasm test fixture
+        run: |
+          mkdir -p test/web/assets/packages/dart_bclibc/assets/wasm
+          cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
+            test/web/assets/packages/dart_bclibc/assets/wasm/
+
+      - name: Run web tests
+        run: dart test -p chrome test/web/
+
   prepare:
     name: Prepare release
-    needs: test
+    needs: [test, test-web]
     runs-on: ubuntu-latest
     permissions:
       contents: write # push version bump commit
