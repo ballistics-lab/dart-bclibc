@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2-beta.2] - 2026-07-22
+
+### Added
+- `web:` entry (`pluginClass: BclibcWebPlugin`) in `pubspec.yaml`'s
+  `flutter.plugin.platforms`, backed by a new `lib/src/bclibc_web_plugin.dart`.
+  The registrant is a no-op — `AsyncCalculator` never goes through platform
+  channels on web, it calls the wasm engine directly via `dart:js_interop` —
+  but Flutter's tooling requires a real `pluginClass` for any platform listed
+  under `flutter.plugin.platforms`, and pub.dev only lists a plugin's
+  supported platforms from that map. Without this entry, Web support existed
+  in practice but wasn't shown on pub.dev.
+- CI: `release.yml` now runs the web/Chrome test suite (mirroring `ci.yml`'s
+  `test-web` job) as a required check before a release can be prepared.
+
+### Changed
+- New `flutter_web_plugins` dependency (Flutter SDK package), required for
+  the `Registrar` type the no-op web registrant's `registerWith` accepts.
+
 ## [0.1.2-beta.1] - 2026-07-22
 
 ### Added
@@ -147,7 +165,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.2-beta.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.2-beta.2...HEAD
+[0.1.2-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.2-beta.1...v0.1.2-beta.2
 [0.1.2-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.1...v0.1.2-beta.1
 [0.1.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.5...v0.1.0
