@@ -13,10 +13,18 @@ on:
     paths: *ci-paths
   workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+# No top-level `concurrency:` here -- this workflow is also invoked as a
+# reusable workflow from release.yml (run-tests), and inside that context
+# `github.workflow` still refers to the *caller's* name ("Release"), not
+# "CI". A concurrency group keyed on `${{ github.workflow }}-${{ github.ref
+# }}` would then resolve to the exact same group release.yml's own
+# top-level concurrency block already holds for that run, which GitHub
+# detects as a self-deadlock and cancels outright ("Canceling since a
+# deadlock was detected for concurrency group ... between a top level
+# workflow and 'run-tests'"). release.yml's own concurrency block is enough
+# to dedupe/cancel superseded release runs; a stale push/pull_request CI
+# run for this workflow's own direct triggers just runs to completion
+# instead of being cancelled by a newer one, which is a fine trade-off here.
 jobs:
   # ── dart/bclibc and flutter/bclibc must stay pinned to the same commit —
   # each package needs its own submodule checkout (see dart_bclibc's own
