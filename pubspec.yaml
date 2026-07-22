@@ -1,6 +1,6 @@
 name: dart_bclibc
 description: "Dart FFI bindings for the bclibc ballistics engine."
-version: 0.1.2-alpha
+version: 0.1.2-beta.1
 repository: https://github.com/ballistics-lab/dart-bclibc
 
 environment:

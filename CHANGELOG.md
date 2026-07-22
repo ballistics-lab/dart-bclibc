@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2-alpha] - 2026-07-22
+## [0.1.2-beta.1] - 2026-07-22
 
 ### Added
 - `AsyncCalculator`: `Future`-based counterpart to `Calculator` with the same
@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   path (`lib/src/calculator_core.dart`, `lib/ffi/bclibc_types.dart`,
   `BcEngine` interface) instead of duplicating it — no public API changes on
   native; `Calculator`'s constructor and methods are unchanged.
+- Pin `bclibc` to `v1.1.6` — adds `build_wasm.sh` and `BCLIBCFFI_get_layout()`
+  upstream, which this release's web/wasm support builds on.
 
 ## [0.1.1] - 2026-07-21
 
@@ -145,7 +147,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.2-beta.1...HEAD
+[0.1.2-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.1...v0.1.2-beta.1
 [0.1.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.5...v0.1.0
 [0.1.0-beta.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.1.0-beta.4...v0.1.0-beta.5

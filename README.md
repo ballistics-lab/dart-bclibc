@@ -333,7 +333,7 @@ During development the path can be overridden via the `BCLIBC_FFI_PATH` environm
 
 | Dependency                                                                      | Role                                                                                         |
 | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| [bclibc](https://github.com/ballistics-lab/bclibc) v1.1.5                       | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
+| [bclibc](https://github.com/ballistics-lab/bclibc) v1.1.6                       | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
 | [ffi](https://pub.dev/packages/ffi)                                             | Dart ↔ C FFI bindings                                                                        |
 | [plugin_platform_interface](https://pub.dev/packages/plugin_platform_interface) | Flutter plugin platform interface                                                            |
 | [web](https://pub.dev/packages/web)                                             | `dart:js_interop`-based DOM bindings, used by `BcLibCWeb` to load the wasm module            |
