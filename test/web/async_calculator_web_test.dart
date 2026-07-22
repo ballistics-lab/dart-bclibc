@@ -1,19 +1,18 @@
 // Web smoke tests for AsyncCalculator's web engine (BcLibCWeb-backed).
 //
+// Deliberately imports the full package barrel (package:dart_bclibc/bclibc.dart)
+// rather than individual files — that's what a real consumer does, and it's
+// the thing that must compile for web (bclibc.dart conditionally excludes
+// the native-only Calculator/BcLibC/bclibc_bindings.g.dart pieces on web;
+// see the `if (dart.library.js_interop)` branches there).
+//
 // Build the wasm artifact first (see bclibc_ffi_web_test.dart), then run:
 //   dart test -p chrome test/web/async_calculator_web_test.dart
 
 @TestOn('browser')
 library;
 
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
-import 'package:dart_bclibc/src/async_calculator.dart';
-import 'package:dart_bclibc/src/conditions.dart';
-import 'package:dart_bclibc/src/drag_model.dart';
-import 'package:dart_bclibc/src/drag_tables.dart';
-import 'package:dart_bclibc/src/munition.dart';
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:dart_bclibc/bclibc.dart';
 import 'package:test/test.dart';
 
 Shot _makeShot() {

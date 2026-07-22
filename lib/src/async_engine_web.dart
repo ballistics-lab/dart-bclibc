@@ -9,7 +9,6 @@
 // imports dart:ffi and so can't be compiled for web).
 
 import 'package:dart_bclibc/ffi/bclibc_ffi_web.dart';
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
 import 'package:dart_bclibc/src/shot.dart';
 import 'package:dart_bclibc/src/trajectory_data.dart';
 import 'package:dart_bclibc/src/unit.dart';

@@ -32,7 +32,6 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Wasm test fixture, copied from bclibc/build/web/ — see test/web/*_test.dart
-# docstrings for the build+copy command.
-/test/web/bclibc_ffi.js
-/test/web/bclibc_ffi.wasm
+# Wasm test fixture, copied from assets/wasm/ (the checked-in package
+# asset) — see test/web/*_test.dart docstrings for the copy command.
+/test/web/assets/

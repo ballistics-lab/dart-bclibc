@@ -22,6 +22,8 @@ import 'package:web/web.dart' as web;
 
 import 'bclibc_types.dart';
 
+export 'bclibc_types.dart';
+
 // ============================================================================
 // Module loading
 // ============================================================================
@@ -414,8 +416,15 @@ class BcLibCWeb implements BcEngine {
 
   /// Loads and instantiates the wasm module. Call once per app; the result
   /// can be reused for any number of shots/calls.
+  ///
+  /// [scriptUrl] defaults to where Flutter web serves this package's own
+  /// bundled asset (declared under `flutter.assets` in pubspec.yaml) —
+  /// see `assets/wasm/` in the package root. Override it if you're loading
+  /// a differently-built or differently-hosted artifact (e.g. in a plain
+  /// `dart test -p chrome` run, which doesn't go through Flutter's asset
+  /// pipeline).
   static Future<BcLibCWeb> open({
-    String scriptUrl = 'bclibc_ffi.js',
+    String scriptUrl = 'assets/packages/dart_bclibc/assets/wasm/bclibc_ffi.js',
     String globalName = 'bclibc_ffi',
   }) async {
     final module = await _loadModule(scriptUrl, globalName);
