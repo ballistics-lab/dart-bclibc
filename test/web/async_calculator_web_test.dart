@@ -1,10 +1,19 @@
-// Smoke tests for AsyncCalculator.
+// Web smoke tests for AsyncCalculator's web engine (BcLibCWeb-backed).
 //
-// Build the native library first:
-//   make native
-//   dart test test/async_calculator_test.dart
+// Build the wasm artifact first (see bclibc_ffi_web_test.dart), then run:
+//   dart test -p chrome test/web/async_calculator_web_test.dart
 
-import 'package:dart_bclibc/bclibc.dart';
+@TestOn('browser')
+library;
+
+import 'package:dart_bclibc/ffi/bclibc_types.dart';
+import 'package:dart_bclibc/src/async_calculator.dart';
+import 'package:dart_bclibc/src/conditions.dart';
+import 'package:dart_bclibc/src/drag_model.dart';
+import 'package:dart_bclibc/src/drag_tables.dart';
+import 'package:dart_bclibc/src/munition.dart';
+import 'package:dart_bclibc/src/shot.dart';
+import 'package:dart_bclibc/src/unit.dart';
 import 'package:test/test.dart';
 
 Shot _makeShot() {
@@ -24,22 +33,14 @@ Shot _makeShot() {
 }
 
 void main() {
-  group('AsyncCalculator', () {
-    test('barrelElevationForTarget matches sync Calculator', () async {
+  group('AsyncCalculator (web)', () {
+    test('barrelElevationForTarget returns a sane elevation', () async {
       final asyncCalc = AsyncCalculator();
-      final syncCalc = Calculator();
-
-      final target = Distance.meter(500);
-      final asyncElev = await asyncCalc.barrelElevationForTarget(
+      final elev = await asyncCalc.barrelElevationForTarget(
         _makeShot(),
-        target,
+        Distance.meter(500),
       );
-      final syncElev = syncCalc.barrelElevationForTarget(_makeShot(), target);
-
-      expect(
-        asyncElev.in_(Unit.radian),
-        closeTo(syncElev.in_(Unit.radian), 1e-9),
-      );
+      expect(elev.in_(Unit.radian), greaterThan(0.0));
     });
 
     test('setWeaponZero mutates the shot passed by the caller', () async {
@@ -53,25 +54,17 @@ void main() {
       expect(elev.in_(Unit.radian), isNot(0.0));
     });
 
-    test('fire returns a trajectory matching sync Calculator', () async {
+    test('fire returns a non-empty trajectory', () async {
       final asyncCalc = AsyncCalculator();
-      final syncCalc = Calculator();
-
-      final asyncResult = await asyncCalc.fire(
+      final result = await asyncCalc.fire(
         shot: _makeShot(),
         trajectoryRange: Distance.meter(1000),
         trajectoryStep: Distance.meter(100),
       );
-      final syncResult = syncCalc.fire(
-        shot: _makeShot(),
-        trajectoryRange: Distance.meter(1000),
-        trajectoryStep: Distance.meter(100),
-      );
-
-      expect(asyncResult.length, syncResult.length);
+      expect(result.trajectory, isNotEmpty);
       expect(
-        asyncResult.trajectory.last.distance.in_(Unit.meter),
-        closeTo(syncResult.trajectory.last.distance.in_(Unit.meter), 1e-6),
+        result.trajectory.last.distance.in_(Unit.meter),
+        closeTo(1000, 1.0),
       );
     });
 
@@ -79,7 +72,6 @@ void main() {
       'barrelElevationForTarget propagates BcException for an unreachable zero',
       () async {
         final asyncCalc = AsyncCalculator();
-
         await expectLater(
           asyncCalc.barrelElevationForTarget(
             _makeShot(),

@@ -14,6 +14,9 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 
 import 'bclibc_bindings.g.dart';
+import 'bclibc_types.dart';
+
+export 'bclibc_types.dart';
 
 // ============================================================================
 // Library loader
@@ -44,251 +47,6 @@ ffi.DynamicLibrary _openLibrary() {
   throw UnsupportedError(
     'bclibc_ffi: unsupported platform ${Platform.operatingSystem}',
   );
-}
-
-// ============================================================================
-// Dart-side value types
-// ============================================================================
-
-class BcConfig {
-  final double stepMultiplier;
-  final double zeroFindingAccuracy;
-  final double minimumVelocity;
-  final double maximumDrop;
-  final int maxIterations;
-  final double gravityConstant;
-  final double minimumAltitude;
-
-  const BcConfig({
-    this.stepMultiplier = 1.0,
-    this.zeroFindingAccuracy = 0.001,
-    this.minimumVelocity = 50.0,
-    this.maximumDrop = -15000.0,
-    this.maxIterations = 50,
-    this.gravityConstant = -32.17405,
-    this.minimumAltitude = -1000.0,
-  });
-}
-
-class BcWind {
-  final double velocityFps;
-  final double directionFromRad;
-  final double untilDistanceFt;
-  final double maxDistanceFt;
-
-  const BcWind({
-    required this.velocityFps,
-    required this.directionFromRad,
-    this.untilDistanceFt = 1e9,
-    this.maxDistanceFt = 1e9,
-  });
-}
-
-class BcDragPoint {
-  final double mach;
-  final double cd;
-  const BcDragPoint(this.mach, this.cd);
-}
-
-/// Shot descriptor in natural units.
-///
-/// All physics conversions (atmosphere density, Coriolis trig, PCHIP drag
-/// curve, cant sin/cos) are performed inside C++ by BCLIBC_Shot::to_shot_props().
-///
-/// [latitudeDeg] / [azimuthDeg]: pass double.nan to disable Coriolis (flat-fire only).
-/// [pressureHpa] == 0: vacuum (zero drag).
-class BcShot {
-  final double bc;
-  final double weightGrain;
-  final double diameterInch;
-  final double lengthInch;
-  final double muzzleVelocityFps;
-  final double sightHeightFt;
-  final double twistInch;
-
-  final double tempC;
-  final double pressureHpa;
-  final double altitudeFt;
-  final double humidity;
-
-  final List<BcDragPoint> dragTable;
-  final List<BcWind> winds;
-
-  final double lookAngleRad;
-  final double barrelElevationRad;
-  final double barrelAzimuthRad;
-  final double cantAngleRad;
-
-  final double latitudeDeg;
-  final double azimuthDeg;
-
-  final BcConfig config;
-  final BCLIBCFFI_IntegrationMethod method;
-
-  const BcShot({
-    required this.bc,
-    required this.weightGrain,
-    required this.diameterInch,
-    required this.lengthInch,
-    required this.muzzleVelocityFps,
-    required this.sightHeightFt,
-    required this.twistInch,
-    required this.tempC,
-    required this.pressureHpa,
-    required this.altitudeFt,
-    this.humidity = 0.0,
-    required this.dragTable,
-    this.winds = const [],
-    required this.lookAngleRad,
-    required this.barrelElevationRad,
-    this.barrelAzimuthRad = 0.0,
-    this.cantAngleRad = 0.0,
-    this.latitudeDeg = double.nan,
-    this.azimuthDeg = double.nan,
-    this.config = const BcConfig(),
-    this.method = BCLIBCFFI_IntegrationMethod.BCLIBCFFI_INTEGRATION_RK4,
-  });
-}
-
-class BcTrajectoryRequest {
-  final double rangeLimitFt;
-  final double rangeStepFt;
-  final double timeStep;
-
-  /// BCLIBCFFI_TrajFlag bitmask (may combine multiple flags via bitwise OR)
-  final int filterFlags;
-
-  const BcTrajectoryRequest({
-    required this.rangeLimitFt,
-    required this.rangeStepFt,
-    this.timeStep = 0.0,
-    this.filterFlags = 8, // BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE
-  });
-}
-
-// ============================================================================
-// Result types
-// ============================================================================
-
-class BcTrajectoryData {
-  final double time, distanceFt, velocityFps, mach;
-  final double heightFt, slantHeightFt, dropAngleRad;
-  final double windageFt, windageAngleRad;
-  final double slantDistanceFt, angleRad;
-  final double densityRatio, drag;
-  final double energyFtLb, ogwLb;
-  final int flag; // BCLIBCFFI_TrajFlag
-
-  const BcTrajectoryData({
-    required this.time,
-    required this.distanceFt,
-    required this.velocityFps,
-    required this.mach,
-    required this.heightFt,
-    required this.slantHeightFt,
-    required this.dropAngleRad,
-    required this.windageFt,
-    required this.windageAngleRad,
-    required this.slantDistanceFt,
-    required this.angleRad,
-    required this.densityRatio,
-    required this.drag,
-    required this.energyFtLb,
-    required this.ogwLb,
-    required this.flag,
-  });
-
-  factory BcTrajectoryData._fromNative(BCLIBCFFI_TrajectoryData s) =>
-      BcTrajectoryData(
-        time: s.time,
-        distanceFt: s.distance_ft,
-        velocityFps: s.velocity_fps,
-        mach: s.mach,
-        heightFt: s.height_ft,
-        slantHeightFt: s.slant_height_ft,
-        dropAngleRad: s.drop_angle_rad,
-        windageFt: s.windage_ft,
-        windageAngleRad: s.windage_angle_rad,
-        slantDistanceFt: s.slant_distance_ft,
-        angleRad: s.angle_rad,
-        densityRatio: s.density_ratio,
-        drag: s.drag,
-        energyFtLb: s.energy_ft_lb,
-        ogwLb: s.ogw_lb,
-        flag: s.flag,
-      );
-}
-
-class BcBaseTrajData {
-  final double time, px, py, pz, vx, vy, vz, mach;
-  const BcBaseTrajData({
-    required this.time,
-    required this.px,
-    required this.py,
-    required this.pz,
-    required this.vx,
-    required this.vy,
-    required this.vz,
-    required this.mach,
-  });
-
-  factory BcBaseTrajData._fromNative(BCLIBCFFI_BaseTrajData s) =>
-      BcBaseTrajData(
-        time: s.time,
-        px: s.px,
-        py: s.py,
-        pz: s.pz,
-        vx: s.vx,
-        vy: s.vy,
-        vz: s.vz,
-        mach: s.mach,
-      );
-}
-
-class BcMaxRangeResult {
-  final double maxRangeFt;
-  final double angleAtMaxRad;
-  const BcMaxRangeResult(this.maxRangeFt, this.angleAtMaxRad);
-}
-
-class BcHitResult {
-  final List<BcTrajectoryData> trajectory;
-  final BCLIBCFFI_TerminationReason reason;
-  const BcHitResult(this.trajectory, this.reason);
-}
-
-class BcInterception {
-  final BcBaseTrajData rawData;
-  final BcTrajectoryData fullData;
-  const BcInterception(this.rawData, this.fullData);
-}
-
-// ============================================================================
-// Exception
-// ============================================================================
-
-class BcException implements Exception {
-  final int code; // BCLIBCFFI_Status
-  final String message;
-  // OutOfRange extras
-  final double? requestedDistanceFt, maxRangeFt, lookAngleRad;
-  // ZeroFinding extras
-  final double? zeroFindingError, lastBarrelElevationRad;
-  final int? iterationsCount;
-
-  const BcException({
-    required this.code,
-    required this.message,
-    this.requestedDistanceFt,
-    this.maxRangeFt,
-    this.lookAngleRad,
-    this.zeroFindingError,
-    this.lastBarrelElevationRad,
-    this.iterationsCount,
-  });
-
-  @override
-  String toString() => 'BcException($code): $message';
 }
 
 // ffi.Array<ffi.Char> → Dart String (null-terminated)
@@ -324,6 +82,37 @@ Never _throwFromError(BCLIBCFFI_Error err) {
   }
   throw BcException(code: err.code, message: msg);
 }
+
+BcTrajectoryData _trajDataFromNative(BCLIBCFFI_TrajectoryData s) =>
+    BcTrajectoryData(
+      time: s.time,
+      distanceFt: s.distance_ft,
+      velocityFps: s.velocity_fps,
+      mach: s.mach,
+      heightFt: s.height_ft,
+      slantHeightFt: s.slant_height_ft,
+      dropAngleRad: s.drop_angle_rad,
+      windageFt: s.windage_ft,
+      windageAngleRad: s.windage_angle_rad,
+      slantDistanceFt: s.slant_distance_ft,
+      angleRad: s.angle_rad,
+      densityRatio: s.density_ratio,
+      drag: s.drag,
+      energyFtLb: s.energy_ft_lb,
+      ogwLb: s.ogw_lb,
+      flag: s.flag,
+    );
+
+BcBaseTrajData _baseTrajFromNative(BCLIBCFFI_BaseTrajData s) => BcBaseTrajData(
+  time: s.time,
+  px: s.px,
+  py: s.py,
+  pz: s.pz,
+  vx: s.vx,
+  vy: s.vy,
+  vz: s.vz,
+  mach: s.mach,
+);
 
 // ============================================================================
 // Native struct fill helper
@@ -395,7 +184,7 @@ extension _FillNativeShot on BcShot {
 // Main API class
 // ============================================================================
 
-class BcLibC {
+class BcLibC implements BcEngine {
   final BcLibCFFIBindings _b;
 
   BcLibC._(this._b);
@@ -405,17 +194,21 @@ class BcLibC {
 
   // ── Utility functions ──────────────────────────────────────────────────────
 
+  @override
   double getCorrection(double distanceFt, double offsetFt) =>
       _b.BCLIBCFFI_get_correction(distanceFt, offsetFt);
 
+  @override
   double calculateEnergy(double bulletWeightGrain, double velocityFps) =>
       _b.BCLIBCFFI_calculate_energy(bulletWeightGrain, velocityFps);
 
+  @override
   double calculateOgw(double bulletWeightGrain, double velocityFps) =>
       _b.BCLIBCFFI_calculate_ogw(bulletWeightGrain, velocityFps);
 
   // ── BcShot-based API (all physics conversion in C++) ──────────────────────
 
+  @override
   BcTrajectoryData findApexShot(BcShot shot) => using((arena) {
     final p = arena<BCLIBCFFI_Shot>();
     final out = arena<BCLIBCFFI_TrajectoryData>();
@@ -423,9 +216,10 @@ class BcLibC {
     shot._fill(p.ref, arena);
     final st = _b.BCLIBCFFI_find_apex_shot(p, out, err);
     if (st != 0) _throwFromError(err.ref);
-    return BcTrajectoryData._fromNative(out.ref);
+    return _trajDataFromNative(out.ref);
   });
 
+  @override
   BcMaxRangeResult findMaxRangeShot(
     BcShot shot, {
     double lowAngleDeg = 0.0,
@@ -446,6 +240,7 @@ class BcLibC {
     return BcMaxRangeResult(out.ref.max_range_ft, out.ref.angle_at_max_rad);
   });
 
+  @override
   double findZeroAngleShot(BcShot shot, double distanceFt) => using((arena) {
     final p = arena<BCLIBCFFI_Shot>();
     final outAngle = arena<ffi.Double>();
@@ -456,6 +251,7 @@ class BcLibC {
     return outAngle.value;
   });
 
+  @override
   BcHitResult integrateShot(BcShot shot, BcTrajectoryRequest request) => using((
     arena,
   ) {
@@ -480,20 +276,18 @@ class BcLibC {
     try {
       final records = List<BcTrajectoryData>.generate(
         count,
-        (i) => BcTrajectoryData._fromNative(rawPtr[i]),
+        (i) => _trajDataFromNative(rawPtr[i]),
       );
-      return BcHitResult(
-        records,
-        BCLIBCFFI_TerminationReason.fromValue(pReason.value),
-      );
+      return BcHitResult(records, BcTerminationReason.fromValue(pReason.value));
     } finally {
       if (count > 0) _b.BCLIBCFFI_free_trajectory(rawPtr);
     }
   });
 
+  @override
   BcInterception integrateAtShot(
     BcShot shot,
-    BCLIBCFFI_BaseTrajInterpKey key,
+    BcBaseTrajInterpKey key,
     double targetValue,
   ) => using((arena) {
     final p = arena<BCLIBCFFI_Shot>();
@@ -509,8 +303,8 @@ class BcLibC {
     );
     if (st != 0) _throwFromError(err.ref);
     return BcInterception(
-      BcBaseTrajData._fromNative(out.ref.raw_data),
-      BcTrajectoryData._fromNative(out.ref.full_data),
+      _baseTrajFromNative(out.ref.raw_data),
+      _trajDataFromNative(out.ref.full_data),
     );
   });
 }
