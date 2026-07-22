@@ -8,7 +8,7 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 [![Pub Version]][pub package]
 [![powered by bclibc]][bclibc repo]
 
-![Linux] ![Windows] ![Android] ![iOS] ![macOS]
+![Linux] ![Windows] ![Android] ![iOS] ![macOS] ![WebAssembly]
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
@@ -324,6 +324,7 @@ make test
 | macOS    | `libbclibc_ffi.dylib` |
 | iOS      | `libbclibc_ffi.dylib` |
 | Windows  | `bclibc_ffi.dll`      |
+| WASM     | `bclibc_ffi.wasm`     |
 
 During development the path can be overridden via the `BCLIBC_FFI_PATH` environment variable.
 
@@ -373,6 +374,7 @@ See [LICENSE](LICENSE) for the full text. See [CHANGELOG](CHANGELOG.md) for rele
 [Android]: https://img.shields.io/badge/Android-arm64%20%7C%20armv7%20%7C%20x86__64-grey?logo=android&logoColor=white&labelColor=3DDC84
 [iOS]: https://img.shields.io/badge/iOS-arm64-grey?logo=apple&logoColor=white&labelColor=000000
 [macOS]: https://img.shields.io/badge/macOS-arm64%20%7C%20x86__64-grey?logo=apple&logoColor=white&labelColor=000000
+[WebAssembly]: https://img.shields.io/badge/WebAssembly-grey?logo=webassembly&logoColor=white&labelColor=654FF0
 
 [bclibc repo]: https://github.com/ballistics-lab/bclibc
 [powered by bclibc]:
