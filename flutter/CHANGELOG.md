@@ -10,6 +10,8 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2026-07-23
+
 ### Added
 - Update flutter package's umbrella
 
@@ -22,5 +24,6 @@ packages are released together under the same tag/version.
   Android/iOS/Linux/macOS/Windows and Web/WebAssembly support, plus
   `AsyncCalculator`. Re-exports everything from `dart_bclibc`.
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0-beta.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0-beta.2...HEAD
+[0.2.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/releases/tag/v0.2.0-beta.1
