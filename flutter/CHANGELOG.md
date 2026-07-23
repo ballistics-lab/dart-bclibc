@@ -10,7 +10,10 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
-## [0.2.0-beta.2] - 2026-07-23
+### Fixed
+- Flutter package facade filename
+
+## [0.2.0-beta.2] - 2026-07-26
 
 ### Added
 - Update flutter package's umbrella
