@@ -16,7 +16,7 @@ dependencies:
 ```
 
 ```dart
-import 'package:dart_bclibc_flutter/dart_bclibc_flutter.dart';
+import 'package:dart_bclibc_flutter/bclibc.dart';
 
 final calc = Calculator();       // synchronous, native FFI
 final asyncCalc = AsyncCalculator(); // off-isolate on native, wasm on web
@@ -43,7 +43,7 @@ package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
 up automatically, no extra setup needed in the consuming app.
 
 ```dart
-import 'package:dart_bclibc_flutter/dart_bclibc_flutter.dart';
+import 'package:dart_bclibc_flutter/bclibc.dart';
 
 // Works unmodified on web — AsyncCalculator picks the wasm engine
 // automatically when compiled for web.

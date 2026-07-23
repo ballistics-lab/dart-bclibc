@@ -4,7 +4,7 @@
 //   make native
 //   dart test test/async_calculator_test.dart
 
-import 'package:dart_bclibc_flutter/dart_bclibc_flutter.dart';
+import 'package:dart_bclibc_flutter/bclibc.dart';
 import 'package:test/test.dart';
 
 Shot _makeShot() {
