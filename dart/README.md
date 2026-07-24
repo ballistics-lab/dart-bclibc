@@ -290,7 +290,7 @@ a Flutter app. During development the path can be overridden via the
 
 | Dependency                                                 | Role                                                                                         |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [bclibc](https://github.com/ballistics-lab/bclibc) v1.1.6  | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
+| [bclibc](https://github.com/ballistics-lab/bclibc)          | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
 | [ffi](https://pub.dev/packages/ffi)                        | Dart ↔ C FFI bindings                                                                        |
 | [path](https://pub.dev/packages/path)                      | Cross-platform path joining, used by the native build/load helpers                          |
 
