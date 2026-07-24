@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 set(PROJECT_NAME "dart_bclibc")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
-set(BCLIBC_VERSION "950c2e5eedd3a5e74a53532ba535011526130b62")
+set(BCLIBC_VERSION "704759435a123aac1253b64e0f08f68ee2d18f81")
 
 # src/ is a direct child of the package root — one level up lands on it.
 # Android Gradle resolves this path directly (no symlink traversal needed).
