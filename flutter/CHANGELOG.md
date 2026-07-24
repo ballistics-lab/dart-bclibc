@@ -10,6 +10,9 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Changed
+- Pin `bclibc` to `v1.1.7`
+
 ## [0.2.0-beta.3] - 2026-07-23
 
 
