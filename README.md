@@ -41,7 +41,9 @@ make test    # runs dart/'s test suite
 The C++ engine ([bclibc](https://github.com/ballistics-lab/bclibc)) is
 vendored as a git submodule, checked out separately under both `dart/bclibc`
 and `flutter/bclibc` (each published package needs to be self-contained —
-see `make verify-bclibc`, which checks the two copies haven't drifted apart).
+see `make verify-bclibc`, which checks the two copies — plus flutter/'s
+CMake `BCLIBC_VERSION`, the prebuilt wasm asset and the CHANGELOGs — all pin
+the same bclibc commit; `make install-hooks` runs it as a pre-commit hook).
 
 ## License
 

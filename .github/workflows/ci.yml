@@ -26,17 +26,16 @@ on:
 # run for this workflow's own direct triggers just runs to completion
 # instead of being cancelled by a newer one, which is a fine trade-off here.
 jobs:
-  # ── dart/bclibc and flutter/bclibc must stay pinned to the same commit —
-  # each package needs its own submodule checkout (see dart_bclibc's own
-  # comment in Makefile's verify-bclibc target for why they can't share
-  # one), this just confirms they haven't drifted apart. ─────────────────────
+  # ── every bclibc pin must agree: dart/bclibc and flutter/bclibc submodules
+  # (each package needs its own checkout — see Makefile's verify-bclibc
+  # comment), flutter/ CMake BCLIBC_VERSION, the prebuilt wasm asset and the
+  # CHANGELOGs. Needs no submodule checkout: tags are resolved via
+  # `git ls-remote`, and CI=true makes an unresolvable tag fatal. ────────────
   verify-bclibc:
-    name: Verify bclibc submodules stay in sync
+    name: Verify bclibc versions stay in sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - run: make verify-bclibc
 
