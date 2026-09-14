@@ -12,7 +12,7 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
-A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler integration. Ships with the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source as a git submodule; no pre-built binaries required.
+A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships with the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source as a git submodule; no pre-built binaries required.
 
 Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/Windows native bundling, plus Web/WebAssembly support), depend on [`dart_bclibc_flutter`](../flutter) instead, which re-exports everything here.
 
@@ -124,7 +124,7 @@ Legacy `BcShotProps`-based overloads (`findApex`, `findMaxRange`, etc.) are reta
 | `BCLIBCFFI_TrajFlag`  | Trajectory filter flags (`BCLIBCFFI_TRAJ_FLAG_RANGE`, `BCLIBCFFI_TRAJ_FLAG_APEX`, …) |
 | `BcTerminationReason` | Why integration stopped (`BcHitResult.reason`).                                      |
 | `BcBaseTrajInterpKey` | Key field selector for `integrateAtShot` (`.posX`, `.time`, `.mach`, …).             |
-| `BcIntegrationMethod` | `BcIntegrationMethod.rk4` (default) or `.euler` (`BcShot.method`).                   |
+| `BcIntegrationMethod` | `BcIntegrationMethod.rk4` (default), `.euler`, `.velocityVerlet` (`BcShot.method`).  |
 
 `BcTerminationReason`, `BcBaseTrajInterpKey`, and `BcIntegrationMethod` (from
 `lib/ffi/bclibc_types.dart`) are platform-agnostic — the same types work with

@@ -11,7 +11,8 @@
 
 enum BcIntegrationMethod {
   rk4(0),
-  euler(1);
+  euler(1),
+  velocityVerlet(2);
 
   final int value;
   const BcIntegrationMethod(this.value);
@@ -19,6 +20,7 @@ enum BcIntegrationMethod {
   static BcIntegrationMethod fromValue(int value) => switch (value) {
     0 => rk4,
     1 => euler,
+    2 => velocityVerlet,
     _ => throw ArgumentError('Unknown value for BcIntegrationMethod: $value'),
   };
 }

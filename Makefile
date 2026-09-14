@@ -1,4 +1,4 @@
-.PHONY: build ffigen test clean format sync-bclibc verify-bclibc
+.PHONY: build ffigen test clean format sync-bclibc verify-bclibc install-hooks
 
 # Cross-platform helpers
 ifeq ($(OS),Windows_NT)
@@ -56,13 +56,14 @@ sync-bclibc:
 # dart_bclibc_flutter) has to be self-contained, so there's no reliable way
 # to share one checkout between them (same reasoning as
 # ob-dump/scripts/ci/verify-lmdb-vendor.sh for its plain-vendored, non-
-# submodule native dependency). This just confirms they haven't drifted
-# apart instead of trying to eliminate the duplication.
+# submodule native dependency). This just confirms they — and every other
+# bclibc pin (flutter/ CMake BCLIBC_VERSION, the prebuilt wasm asset, the
+# CHANGELOGs) — haven't drifted apart instead of trying to eliminate the
+# duplication. See scripts/ci/verify-bclibc.sh.
 verify-bclibc:
-	@dart_ref=$$(git submodule status dart/bclibc | awk '{print $$1}' | tr -d '+-'); \
-	flutter_ref=$$(git submodule status flutter/bclibc | awk '{print $$1}' | tr -d '+-'); \
-	if [ "$$dart_ref" != "$$flutter_ref" ]; then \
-		echo "error: dart/bclibc ($$dart_ref) and flutter/bclibc ($$flutter_ref) point at different commits"; \
-		exit 1; \
-	fi; \
-	echo "OK: dart/bclibc and flutter/bclibc both at $$dart_ref"
+	scripts/ci/verify-bclibc.sh
+
+# Run verify-bclibc as a git pre-commit hook for this clone.
+install-hooks:
+	git config core.hooksPath scripts/hooks
+	@echo "Installed: pre-commit → scripts/ci/verify-bclibc.sh"
