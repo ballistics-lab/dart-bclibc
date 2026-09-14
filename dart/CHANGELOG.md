@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Changed
+### Added
+- `BcIntegrationMethod.velocityVerlet`
 
-- Pin `bclibc` to `v1.1.7`
+### Changed
+- Pin `bclibc` to `v1.1.8`
 
 ## [0.2.0] - 2026-07-24
 

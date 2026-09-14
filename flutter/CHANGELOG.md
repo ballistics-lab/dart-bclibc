@@ -10,9 +10,9 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
-## Changed
-
-- Pin `bclibc` to `v1.1.7`
+### Changed
+- Pin `bclibc` to `v1.1.8`
+- Rebuild web wasm assets from `bclibc` `v1.1.8` (emsdk 6.0.9); adds Velocity Verlet on web
 
 ## [0.2.0] - 2026-07-24
 

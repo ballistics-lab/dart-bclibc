@@ -154,6 +154,21 @@ void main() {
     }
   });
 
+  for (final method in [
+    BcIntegrationMethod.euler,
+    BcIntegrationMethod.velocityVerlet,
+  ]) {
+    test('integrateShot ${method.name} method also produces a trajectory', () {
+      final shot = _makeShot(method: method);
+      final request = BcTrajectoryRequest(
+        rangeLimitFt: 500.0 * 3.28084,
+        rangeStepFt: 100.0 * 3.28084,
+      );
+      final result = bc.integrateShot(shot, request);
+      expect(result.trajectory, isNotEmpty);
+    });
+  }
+
   test('integrateAtShot returns interception at a specific distance', () {
     final shot = _makeShot();
     final targetFt = 500.0 * 3.28084;

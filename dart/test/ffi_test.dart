@@ -222,6 +222,17 @@ void main() {
       final result = bc.integrateShot(shot, request);
       expect(result.trajectory, isNotEmpty);
     });
+
+    test('VELOCITY_VERLET method also produces a trajectory', () {
+      final shot = _makeShot(method: BcIntegrationMethod.velocityVerlet);
+      final request = BcTrajectoryRequest(
+        rangeLimitFt: 500.0 * 3.28084,
+        rangeStepFt: 100.0 * 3.28084,
+        filterFlags: BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE.value,
+      );
+      final result = bc.integrateShot(shot, request);
+      expect(result.trajectory, isNotEmpty);
+    });
   });
 
   // ── integrateAtShot ──────────────────────────────────────────────────────

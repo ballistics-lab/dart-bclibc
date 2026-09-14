@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "dart_bclibc")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
-set(BCLIBC_VERSION "704759435a123aac1253b64e0f08f68ee2d18f81")
+set(BCLIBC_VERSION "89132f5c5d0cdfc2867d70f87fd7f6608d8614f4")
 
 # ============================================================================
 # dart_bclibc – thin C wrapper over the embedded bclibc ballistics engine
