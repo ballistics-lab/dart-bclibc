@@ -471,6 +471,31 @@ class BcLibCFFIBindings {
       );
   late final _BCLIBCFFI_calculate_ogw =
       _BCLIBCFFI_calculate_ogwPtr.asFunction<double Function(double, double)>();
+
+  /// Fills `out` with byte sizes/offsets for every BCLIBCFFI_Shot-family
+  /// struct field consumed by a hand-written (non-Embind) JS/wasm binding,
+  /// computed via sizeof()/offsetof() by whichever compiler builds this
+  /// library — so a JS-side binding never has to hardcode/guess struct
+  /// layout. See bclibc_ffi.cpp for the fixed field order this fills.
+  ///
+  /// @param out      Caller-allocated buffer of at least BCLIBCFFI_LAYOUT_FIELD_COUNT int32s.
+  /// @param out_len  Capacity of `out`, in int32 elements.
+  /// @return Number of int32s written (== BCLIBCFFI_LAYOUT_FIELD_COUNT), or
+  /// -1 if out_len is too small.
+  int BCLIBCFFI_get_layout(ffi.Pointer<ffi.Int32> out, int out_len) {
+    return _BCLIBCFFI_get_layout(out, out_len);
+  }
+
+  late final _BCLIBCFFI_get_layoutPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Int32)
+        >
+      >('BCLIBCFFI_get_layout');
+  late final _BCLIBCFFI_get_layout =
+      _BCLIBCFFI_get_layoutPtr.asFunction<
+        int Function(ffi.Pointer<ffi.Int32>, int)
+      >();
 }
 
 enum BCLIBCFFI_Status {
@@ -605,7 +630,8 @@ enum BCLIBCFFI_BaseTrajInterpKey {
 
 enum BCLIBCFFI_IntegrationMethod {
   BCLIBCFFI_INTEGRATION_RK4(0),
-  BCLIBCFFI_INTEGRATION_EULER(1);
+  BCLIBCFFI_INTEGRATION_EULER(1),
+  BCLIBCFFI_INTEGRATION_VELOCITY_VERLET(2);
 
   final int value;
   const BCLIBCFFI_IntegrationMethod(this.value);
@@ -613,6 +639,7 @@ enum BCLIBCFFI_IntegrationMethod {
   static BCLIBCFFI_IntegrationMethod fromValue(int value) => switch (value) {
     0 => BCLIBCFFI_INTEGRATION_RK4,
     1 => BCLIBCFFI_INTEGRATION_EULER,
+    2 => BCLIBCFFI_INTEGRATION_VELOCITY_VERLET,
     _ => throw ArgumentError(
       'Unknown value for BCLIBCFFI_IntegrationMethod: $value',
     ),

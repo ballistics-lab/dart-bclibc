@@ -10,14 +10,16 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-07-24
+## Changed
 
+- Pin `bclibc` to `v1.1.7`
+
+## [0.2.0] - 2026-07-24
 
 ### Changed
 - Pin `bclibc` to `v1.1.7`
 
 ## [0.2.0-beta.3] - 2026-07-23
-
 
 ### Fixed
 - Flutter package facade filename
