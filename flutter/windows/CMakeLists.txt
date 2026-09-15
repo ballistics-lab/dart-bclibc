@@ -5,18 +5,18 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
-set(PROJECT_NAME "dart_bclibc")
+set(PROJECT_NAME "bclibc_flutter")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
 set(BCLIBC_VERSION "89132f5c5d0cdfc2867d70f87fd7f6608d8614f4")
 
 # ============================================================================
-# dart_bclibc – thin C wrapper over the embedded bclibc ballistics engine
+# bclibc_flutter – thin C wrapper over the embedded bclibc ballistics engine
 # ============================================================================
 
 # Find the root of the package
-# Current path: windows/flutter/ephemeral/.plugin_symlinks/bclibc_ffi/windows/
-# One level up crosses the .plugin_symlinks/bclibc_ffi symlink transparently
+# Current path: windows/flutter/ephemeral/.plugin_symlinks/bclibc_flutter/windows/
+# One level up crosses the .plugin_symlinks/bclibc_flutter symlink transparently
 # and lands on the package root.
 get_filename_component(PACKAGE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(BCLIBC_ROOT "${PACKAGE_ROOT}/bclibc")
@@ -28,10 +28,10 @@ message(STATUS "bclibc path: ${BCLIBC_ROOT}")
 # ── Mode 1: submodule / pub.dev archive ──────────────────────────────────────
 # ── Mode 2: FetchContent (git dep — submodule not initialised) ────────────────
 if(EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
-  message(STATUS "dart_bclibc: Mode 1 — building from source at ${BCLIBC_ROOT}")
+  message(STATUS "bclibc_flutter: Mode 1 — building from source at ${BCLIBC_ROOT}")
   add_subdirectory("${BCLIBC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bclibc_build")
 else()
-  message(STATUS "dart_bclibc: Mode 2 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
+  message(STATUS "bclibc_flutter: Mode 2 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
   include(FetchContent)
   FetchContent_Declare(bclibc
     GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git
@@ -46,12 +46,12 @@ else()
 endif()
 
 # Declare the DLL as a bundled library — Flutter's generated_plugins.cmake
-# collects dart_bclibc_bundled_libraries into PLUGIN_BUNDLED_LIBRARIES and the
+# collects bclibc_flutter_bundled_libraries into PLUGIN_BUNDLED_LIBRARIES and the
 # app's CMakeLists installs it to the bundle root via the standard loop.
 # flutter_assemble is wired before the main binary, so hooking bclibc_ffi onto
 # it ensures Visual Studio builds bclibc_ffi whenever it builds the app.
 if(TARGET bclibc_ffi)
-  set(dart_bclibc_bundled_libraries $<TARGET_FILE:bclibc_ffi> PARENT_SCOPE)
+  set(bclibc_flutter_bundled_libraries $<TARGET_FILE:bclibc_ffi> PARENT_SCOPE)
   if(TARGET flutter_assemble)
     add_dependencies(flutter_assemble bclibc_ffi)
   endif()

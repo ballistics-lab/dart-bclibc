@@ -5,16 +5,16 @@
 // caller's isolate (e.g. the UI isolate in a Flutter app).
 //
 // ignore_for_file: implementation_imports
-// Deliberately reaches into dart_bclibc's lib/src — this package and
-// dart_bclibc are versioned and published together from the same monorepo.
+// Deliberately reaches into bclibc's lib/src — this package and
+// bclibc are versioned and published together from the same monorepo.
 
 import 'dart:isolate';
 
-import 'package:dart_bclibc/ffi/bclibc_ffi.dart';
-import 'package:dart_bclibc/src/calculator.dart';
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/trajectory_data.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:bclibc/ffi/bclibc_ffi.dart';
+import 'package:bclibc/src/calculator.dart';
+import 'package:bclibc/src/shot.dart';
+import 'package:bclibc/src/trajectory_data.dart';
+import 'package:bclibc/src/unit.dart';
 
 Future<Angular> asyncBarrelElevationForTarget(
   Shot shot,

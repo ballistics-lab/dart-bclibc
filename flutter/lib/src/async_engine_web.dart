@@ -9,13 +9,13 @@
 // imports dart:ffi and so can't be compiled for web).
 //
 // ignore_for_file: implementation_imports
-// Deliberately reaches into dart_bclibc's lib/src — this package and
-// dart_bclibc are versioned and published together from the same monorepo.
+// Deliberately reaches into bclibc's lib/src — this package and
+// bclibc are versioned and published together from the same monorepo.
 
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/trajectory_data.dart';
-import 'package:dart_bclibc/src/unit.dart';
-import 'package:dart_bclibc/src/calculator_core.dart';
+import 'package:bclibc/src/shot.dart';
+import 'package:bclibc/src/trajectory_data.dart';
+import 'package:bclibc/src/unit.dart';
+import 'package:bclibc/src/calculator_core.dart';
 
 import '../ffi/bclibc_ffi_web.dart';
 

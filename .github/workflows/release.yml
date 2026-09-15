@@ -2,7 +2,7 @@ name: Release
 
 # Triggered by pushing a tag like v1.2.3 -- that tag must already be sitting
 # on a commit where dart/pubspec.yaml, flutter/pubspec.yaml (both its own
-# `version:` and its `dart_bclibc: ^...` dependency constraint), and
+# `version:` and its `bclibc: ^...` dependency constraint), and
 # dart/CHANGELOG.md are all fully consistent with it. verify-release below
 # only checks that; it never bumps/commits/pushes anything on your behalf,
 # unlike this workflow's previous version (which used to bump pubspec.yaml
@@ -69,7 +69,7 @@ jobs:
           VERSION="${{ steps.meta.outputs.version }}"
           DART_VERSION="$(grep '^version:' dart/pubspec.yaml | awk '{print $2}')"
           FLUTTER_VERSION="$(grep '^version:' flutter/pubspec.yaml | awk '{print $2}')"
-          FLUTTER_DEP="$(grep -E '^\s*dart_bclibc: \^' flutter/pubspec.yaml | sed -E 's/.*\^([^[:space:]]+)$/\1/')"
+          FLUTTER_DEP="$(grep -E '^\s*bclibc: \^' flutter/pubspec.yaml | sed -E 's/.*\^([^[:space:]]+)$/\1/')"
           fail=0
           if [ "$DART_VERSION" != "$VERSION" ]; then
             echo "dart/pubspec.yaml has version $DART_VERSION, expected $VERSION"
@@ -80,7 +80,7 @@ jobs:
             fail=1
           fi
           if [ "$FLUTTER_DEP" != "$VERSION" ]; then
-            echo "flutter/pubspec.yaml's dart_bclibc dependency constraint is ^$FLUTTER_DEP, expected ^$VERSION"
+            echo "flutter/pubspec.yaml's bclibc dependency constraint is ^$FLUTTER_DEP, expected ^$VERSION"
             fail=1
           fi
           if [ "$fail" = 1 ]; then
@@ -138,7 +138,7 @@ jobs:
           body_path: /tmp/release_notes.md
           prerelease: ${{ needs.verify-release.outputs.prerelease }}
 
-  # ── publish dart_bclibc to pub.dev ────────────────────────────────────────
+  # ── publish bclibc to pub.dev ────────────────────────────────────────
   publish-dart:
     needs: [verify-release, create-release]
     runs-on: ubuntu-latest
@@ -160,19 +160,19 @@ jobs:
       - run: dart pub publish --dry-run
       - run: dart pub publish --force
 
-  # ── publish dart_bclibc_flutter to pub.dev ────────────────────────────────
+  # ── publish bclibc_flutter to pub.dev ────────────────────────────────
   # Depends on publish-dart finishing first: dependency_overrides (path:
   # ../dart) only applies while this repo's own checkout is the root
   # package being resolved (i.e. right here in CI) -- it's inert once
-  # dart_bclibc_flutter is a dependency of someone else's app, so its real
-  # `dart_bclibc: ^VERSION` constraint should already be resolvable on
+  # bclibc_flutter is a dependency of someone else's app, so its real
+  # `bclibc: ^VERSION` constraint should already be resolvable on
   # pub.dev by the time this publishes, not just locally.
   #
   # `environment: pub-flutter` is a *new* GitHub environment (this is a new
   # package -- set up its own pub.dev trusted publisher against this exact
   # environment name) with a wait-timer protection rule configured in this
   # repo's settings, giving pub.dev a few minutes to finish indexing the
-  # dart_bclibc version publish-dart just published before this job tries
+  # bclibc version publish-dart just published before this job tries
   # to resolve it as a real (non-overridden) dependency.
   publish-flutter:
     needs: [verify-release, create-release, publish-dart]

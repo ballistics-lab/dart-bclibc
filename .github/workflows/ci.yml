@@ -143,7 +143,7 @@ jobs:
 
   # Native (non-web) tests need a real libbclibc_ffi.so on disk — built here
   # via dart/'s own build_native.dart (same artifact `dart run
-  # dart_bclibc:build_native` produces for a plain Dart consumer) and pointed
+  # bclibc:build_native` produces for a plain Dart consumer) and pointed
   # at via BCLIBC_FFI_PATH, since `flutter test`'s isolate/JIT context doesn't
   # reliably resolve the package: URI strategy the way `flutter run`/`dart
   # run` do.
@@ -202,9 +202,9 @@ jobs:
 
       - name: Stage wasm test fixture
         run: |
-          mkdir -p test/web/assets/packages/dart_bclibc_flutter/assets/wasm
+          mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
           cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
-            test/web/assets/packages/dart_bclibc_flutter/assets/wasm/
+            test/web/assets/packages/bclibc_flutter/assets/wasm/
 
       - name: Run web tests
         run: dart test -p chrome test/web/

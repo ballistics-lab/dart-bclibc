@@ -217,7 +217,7 @@ class Distance extends Dimension<Distance> {
       Distance(value, Unit.nauticalMile);
   factory Distance.line(double value) => Distance(value, Unit.line);
   factory Distance.millimeter(double value) => Distance(value, Unit.millimeter);
-  factory Distance.centimeter(double value) => Distance(value, Unit.inch);
+  factory Distance.centimeter(double value) => Distance(value, Unit.centimeter);
   factory Distance.meter(double value) => Distance(value, Unit.meter);
   factory Distance.kilometer(double value) => Distance(value, Unit.kilometer);
 

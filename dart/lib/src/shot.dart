@@ -1,7 +1,7 @@
 import 'dart:math' as math;
-import 'package:dart_bclibc/src/unit.dart';
-import 'package:dart_bclibc/src/conditions.dart';
-import 'package:dart_bclibc/src/munition.dart';
+import 'package:bclibc/src/unit.dart';
+import 'package:bclibc/src/conditions.dart';
+import 'package:bclibc/src/munition.dart';
 
 class Shot {
   final Ammo ammo;

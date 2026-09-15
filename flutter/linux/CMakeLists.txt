@@ -3,13 +3,13 @@
 # the plugin to fail to compile for some customers of the plugin.
 cmake_minimum_required(VERSION 3.13)
 
-set(PROJECT_NAME "dart_bclibc")
+set(PROJECT_NAME "bclibc_flutter")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
 set(BCLIBC_VERSION "89132f5c5d0cdfc2867d70f87fd7f6608d8614f4")
 
 # ============================================================================
-# dart_bclibc – thin C wrapper over the embedded bclibc ballistics engine
+# bclibc_flutter – thin C wrapper over the embedded bclibc ballistics engine
 #
 # Three modes (tried in order):
 #   1. Source build:    bclibc/ submodule present → add_subdirectory
@@ -20,24 +20,24 @@ set(BCLIBC_VERSION "89132f5c5d0cdfc2867d70f87fd7f6608d8614f4")
 #                       (git dep via `dart pub get`, or submodule not yet initialised)
 # ============================================================================
 
-# Via symlink path: linux/flutter/ephemeral/.plugin_symlinks/dart_bclibc/linux/
-# One level up crosses the .plugin_symlinks/dart_bclibc symlink transparently
+# Via symlink path: linux/flutter/ephemeral/.plugin_symlinks/bclibc_flutter/linux/
+# One level up crosses the .plugin_symlinks/bclibc_flutter symlink transparently
 # (OS resolves it at filesystem-access time) and lands on the package root,
 # regardless of whether this is a local path dependency or a pub-cache package.
 get_filename_component(PACKAGE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(BCLIBC_ROOT "${PACKAGE_ROOT}/bclibc")
 
-message(STATUS "dart_bclibc: package root  = ${PACKAGE_ROOT}")
-message(STATUS "dart_bclibc: bclibc source = ${BCLIBC_ROOT}")
+message(STATUS "bclibc_flutter: package root  = ${PACKAGE_ROOT}")
+message(STATUS "bclibc_flutter: bclibc source = ${BCLIBC_ROOT}")
 
 # Helper macro — shared by all three modes after the target is available.
-macro(dart_bclibc_set_bundled_lib TARGET_OR_FILE)
-  set(dart_bclibc_bundled_libraries "${TARGET_OR_FILE}" PARENT_SCOPE)
+macro(bclibc_flutter_set_bundled_lib TARGET_OR_FILE)
+  set(bclibc_flutter_bundled_libraries "${TARGET_OR_FILE}" PARENT_SCOPE)
 endmacro()
 
 if(EXISTS "${BCLIBC_ROOT}/CMakeLists.txt")
   # ── Mode 1: submodule / pub.dev archive ────────────────────────────────────
-  message(STATUS "dart_bclibc: Mode 1 — building from source at ${BCLIBC_ROOT}")
+  message(STATUS "bclibc_flutter: Mode 1 — building from source at ${BCLIBC_ROOT}")
   add_subdirectory("${BCLIBC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bclibc_build")
 
 else()
@@ -47,12 +47,12 @@ else()
     NO_DEFAULT_PATH)
 
   if(BCLIBC_FFI_LIB)
-    message(STATUS "dart_bclibc: Mode 2 — pre-installed library: ${BCLIBC_FFI_LIB}")
+    message(STATUS "bclibc_flutter: Mode 2 — pre-installed library: ${BCLIBC_FFI_LIB}")
     # Resolve symlinks so Flutter bundles a plain .so, not a relative symlink.
     get_filename_component(BCLIBC_FFI_REAL "${BCLIBC_FFI_LIB}" REALPATH)
     set(BCLIBC_FFI_COPY "${CMAKE_CURRENT_BINARY_DIR}/libbclibc_ffi.so")
     configure_file("${BCLIBC_FFI_REAL}" "${BCLIBC_FFI_COPY}" COPYONLY)
-    dart_bclibc_set_bundled_lib("${BCLIBC_FFI_COPY}")
+    bclibc_flutter_set_bundled_lib("${BCLIBC_FFI_COPY}")
 
   else()
     # ── Mode 3: FetchContent (git dep — submodule not initialised) ──────────
@@ -60,7 +60,7 @@ else()
     # FetchContent_MakeAvailable is intentionally avoided: in CMake 4.x it runs a
     # subbuild cmake that sets CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT=FALSE,
     # preventing the parent from overriding /usr/local with its bundle directory.
-    message(STATUS "dart_bclibc: Mode 3 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
+    message(STATUS "bclibc_flutter: Mode 3 — fetching bclibc ${BCLIBC_VERSION} from GitHub")
     include(FetchContent)
     FetchContent_Declare(bclibc
       GIT_REPOSITORY https://github.com/ballistics-lab/bclibc.git

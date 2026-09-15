@@ -5,14 +5,14 @@
 // sibling `ob-dump` project's `dart run ob_dump_reader:build`
 // (dart/lib/src/build_util.dart).
 //
-// `flutter build`/`flutter run` (via dart_bclibc_flutter) bundle the library
+// `flutter build`/`flutter run` (via bclibc_flutter) bundle the library
 // automatically via the platform CMake integration — this script only covers
 // plain Dart projects (`dart test`, `dart run`), which never run a platform
 // build, so consumers should call it once before either:
 //
-//   dart run dart_bclibc:build_native
+//   dart run bclibc:build_native
 //
-// Usage: dart run dart_bclibc:build_native [BUILD_TYPE]
+// Usage: dart run bclibc:build_native [BUILD_TYPE]
 // BUILD_TYPE defaults to the BCLIBC_BUILD_TYPE env var, or "Release".
 import 'dart:io';
 import 'dart:isolate';
@@ -26,24 +26,24 @@ Future<void> main(List<String> args) async {
 
   if (!Platform.isLinux && !Platform.isMacOS && !Platform.isWindows) {
     stderr.writeln(
-      'error: dart_bclibc:build_native only supports Linux/macOS/Windows '
+      'error: bclibc:build_native only supports Linux/macOS/Windows '
       'desktop targets. Android/iOS get the native library bundled by '
-      'dart_bclibc_flutter\'s platform build instead.',
+      'bclibc_flutter\'s platform build instead.',
     );
     exit(1);
   }
 
-  // `dart run dart_bclibc:build_native` compiles this script to a kernel
+  // `dart run bclibc:build_native` compiles this script to a kernel
   // snapshot cached under the *caller's* .dart_tool/pub/bin/ — Platform.script
   // then points at that snapshot, not at this file's real location in
   // pub-cache. Isolate.resolvePackageUri goes through the actual
   // package_config.json resolution instead, so it's correct regardless of
   // pub-cache vs. path dependency vs. snapshot caching.
   final libUri = await Isolate.resolvePackageUri(
-    Uri.parse('package:dart_bclibc/bclibc.dart'),
+    Uri.parse('package:bclibc/bclibc.dart'),
   );
   if (libUri == null) {
-    stderr.writeln('error: could not resolve package:dart_bclibc');
+    stderr.writeln('error: could not resolve package:bclibc');
     exit(1);
   }
   final packageRoot = Directory.fromUri(libUri.resolve('..'));
@@ -53,7 +53,7 @@ Future<void> main(List<String> args) async {
   if (!bclibcCMakeLists.existsSync()) {
     stderr.writeln(
       'error: ${bclibcCMakeLists.path} not found.\n'
-      'If dart_bclibc is a path dependency, run `git submodule update --init` in it first.',
+      'If bclibc is a path dependency, run `git submodule update --init` in it first.',
     );
     exit(1);
   }

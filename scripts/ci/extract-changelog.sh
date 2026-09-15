@@ -6,7 +6,7 @@
 # caller decides whether that's fatal.
 #
 # Used against dart/CHANGELOG.md -- the source of truth for release notes
-# (dart_bclibc and dart_bclibc_flutter are versioned/released in lockstep,
+# (bclibc and bclibc_flutter are versioned/released in lockstep,
 # see that file's own header, but flutter/CHANGELOG.md's own entries are
 # usually much thinner, so GitHub Release notes are drawn from dart/'s).
 #

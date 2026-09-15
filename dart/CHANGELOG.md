@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-15
+
+### Changed
+
+- **Breaking:** package renamed from `dart_bclibc` to `bclibc`. Update your
+  `pubspec.yaml` dependency and every `package:dart_bclibc/...` import to
+  `package:bclibc/...`.
+
+### Migration
+
+- `dependencies: { dart_bclibc: ^0.2.2 }` → `dependencies: { bclibc: ^0.2.3 }`
+- `import 'package:dart_bclibc/bclibc.dart';` → `import 'package:bclibc/bclibc.dart';`
+  (and likewise for every other `package:dart_bclibc/...` import).
+
+## [0.2.2] - 2026-09-15
+
+### Fixed
+- `Distance.centimeter()` constructed a `Distance` with `Unit.inch` instead of
+  `Unit.centimeter`, silently misinterpreting the given value as inches.
+
 ## [0.2.1] - 2026-09-14
 
 ### Added
@@ -34,16 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking:** split the package. `dart_bclibc` is now pure Dart — no
+- **Breaking:** split the package. `bclibc` is now pure Dart — no
   `package:flutter` dependency, installable from plain Dart (non-Flutter)
   projects. Everything Flutter-specific (native platform bundling for
   Android/iOS/Linux/macOS/Windows, Web/WebAssembly support, and
   `AsyncCalculator`, which needs a real web implementation) moved to the new
-  [`dart_bclibc_flutter`](https://pub.dev/packages/dart_bclibc_flutter)
-  package. `dart_bclibc` itself now only exposes the synchronous
+  [`bclibc_flutter`](https://pub.dev/packages/bclibc_flutter)
+  package. `bclibc` itself now only exposes the synchronous
   `Calculator`/`BcLibC` (native FFI); wrap `Calculator` in your own
   `Isolate.run` for off-isolate execution in a plain Dart project.
-- `dart run dart_bclibc:build_native` now copies the built native library
+- `dart run bclibc:build_native` now copies the built native library
   into the package's own `lib/native/<platform>/` directory (resolved via a
   `package:` URI at load time) instead of a `build/bclibc/` directory
   relative to the caller's working directory — more robust across different
@@ -56,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migration
 
-- Flutter apps: depend on `dart_bclibc_flutter` instead of `dart_bclibc`
+- Flutter apps: depend on `bclibc_flutter` instead of `bclibc`
   directly (it re-exports everything from this package, plus
   `AsyncCalculator` and web support).
 - Plain Dart apps: no changes needed beyond dropping any direct use of
@@ -100,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The compiled wasm artifact (`assets/wasm/bclibc_ffi.js` + `.wasm`) is
     now bundled with the package via `flutter.assets` in `pubspec.yaml`, so
     `flutter build web` picks it up automatically.
-  - `package:dart_bclibc/bclibc.dart` conditionally excludes the native-only
+  - `package:bclibc/bclibc.dart` conditionally excludes the native-only
     `Calculator` / `BcLibC` / generated `dart:ffi` bindings when compiling
     for web (`if (dart.library.js_interop)`), so importing the package
     barrel compiles cleanly on both platforms — web consumers use
@@ -142,7 +162,7 @@ package as stable for pub.dev.
   DESTINATION .)` that doubled up with the standard `PLUGIN_BUNDLED_LIBRARIES` install
   loop already present in every Flutter app's `windows/CMakeLists.txt`. Removed the
   explicit `install()` call; the DLL is now delivered exclusively via
-  `dart_bclibc_bundled_libraries → PLUGIN_BUNDLED_LIBRARIES`, matching the behaviour
+  `bclibc_bundled_libraries → PLUGIN_BUNDLED_LIBRARIES`, matching the behaviour
   of the previous `bclibc_ffi` local package.
 
 ## [0.1.0-beta.4] - 2026-07-02
@@ -162,7 +182,7 @@ package as stable for pub.dev.
 - `bin/build_native.dart` resolved its own package root via `Platform.script`,
   which points at a cached kernel snapshot in the *caller's*
   `.dart_tool/pub/bin/` — not this file's real location in pub-cache — when
-  invoked as `dart run dart_bclibc:build_native` from a consuming project
+  invoked as `dart run bclibc:build_native` from a consuming project
   (as opposed to running it directly from within this repo, which is how it
   was tested for 0.1.0-beta.2). Switched to `Isolate.resolvePackageUri`,
   which goes through the actual `package_config.json` resolution and works
@@ -171,7 +191,7 @@ package as stable for pub.dev.
 ## [0.1.0-beta.2] - 2026-07-01
 
 ### Added
-- `bin/build_native.dart` — `dart run dart_bclibc:build_native` builds the
+- `bin/build_native.dart` — `dart run bclibc:build_native` builds the
   standalone `libbclibc_ffi` shared library into `build/bclibc/`, for
   consumers running `flutter test`/`dart test`, which never trigger the
   platform build that bundles the library automatically
@@ -220,7 +240,9 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0-beta.3...v0.2.0
 [0.2.0-beta.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0-beta.2...v0.2.0-beta.3

@@ -1,5 +1,5 @@
-import 'package:dart_bclibc/src/unit.dart';
-import 'package:dart_bclibc/src/shot.dart';
+import 'package:bclibc/src/unit.dart';
+import 'package:bclibc/src/shot.dart';
 
 enum TrajFlag {
   none(0),

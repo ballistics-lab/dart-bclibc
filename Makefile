@@ -12,7 +12,7 @@ BUILD_TYPE ?= Release
 # Build the native shared library via CMake (used by ffigen and dart tests)
 # and copy it into dart/lib/native/ — see dart/bin/build_native.dart.
 # For Flutter apps, the library is built automatically by `flutter build`
-# (via dart_bclibc_flutter's platform CMake integration instead).
+# (via bclibc_flutter's platform CMake integration instead).
 # This target additionally initializes both bclibc submodules, which only
 # applies to a local clone of this repo.
 build:
@@ -52,8 +52,8 @@ sync-bclibc:
 	git add flutter/bclibc
 
 # dart/bclibc and flutter/bclibc are two separate submodule checkouts of the
-# same upstream repo — each published package (dart_bclibc,
-# dart_bclibc_flutter) has to be self-contained, so there's no reliable way
+# same upstream repo — each published package (bclibc,
+# bclibc_flutter) has to be self-contained, so there's no reliable way
 # to share one checkout between them (same reasoning as
 # ob-dump/scripts/ci/verify-lmdb-vendor.sh for its plain-vendored, non-
 # submodule native dependency). This just confirms they — and every other

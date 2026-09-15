@@ -25,11 +25,11 @@ export 'bclibc_types.dart';
 // ============================================================================
 
 /// The name CocoaPods gives the compiled framework on iOS/macOS is the
-/// *podspec's* name — `dart_bclibc_flutter`, the Flutter wrapper package's
-/// own name, not this package's (`dart_bclibc`) or the CMake target's
+/// *podspec's* name — `bclibc_flutter`, the Flutter wrapper package's
+/// own name, not this package's (`bclibc`) or the CMake target's
 /// (`bclibc_ffi`) — every source file the podspec declares compiles into one
 /// framework binary named after the pod itself.
-const String _iosMacosFrameworkName = 'dart_bclibc_flutter';
+const String _iosMacosFrameworkName = 'bclibc_flutter';
 
 String _libName() {
   if (Platform.isWindows) return 'bclibc_ffi.dll';
@@ -46,13 +46,13 @@ ffi.DynamicLibrary _openLibrary() {
 
   // 1. `package:` URI resolution — works in JIT mode (`dart run`/`flutter
   //    run`), backed by .dart_tool/package_config.json and the location
-  //    `dart run dart_bclibc:build_native` copies the built library to. Not
+  //    `dart run bclibc:build_native` copies the built library to. Not
   //    applicable to iOS at all (no JIT there, ever), skipped for that
   //    platform.
   if (!Platform.isIOS) {
     try {
       final uri = Isolate.resolvePackageUriSync(
-        Uri.parse('package:dart_bclibc/native/$platform/$libName'),
+        Uri.parse('package:bclibc/native/$platform/$libName'),
       );
       if (uri != null) {
         final path = uri.toFilePath();
@@ -63,7 +63,7 @@ ffi.DynamicLibrary _openLibrary() {
     }
   }
 
-  // 2. iOS/macOS via the `dart_bclibc_flutter` CocoaPods framework: a bare
+  // 2. iOS/macOS via the `bclibc_flutter` CocoaPods framework: a bare
   // `<Framework>.framework/<Framework>` reference, resolved by dyld through
   // the app bundle's own embedded search paths (Xcode wires this up
   // automatically when the framework is linked in).
@@ -88,7 +88,7 @@ ffi.DynamicLibrary _openLibrary() {
   // 4. Executable-relative — where Flutter's own native-library bundling
   //    places plugin libraries on Linux/Windows in a compiled release build
   //    (build/linux/x64/release/bundle/lib/*.so and equivalents), or where a
-  //    plain `dart run dart_bclibc:build_native` + `dart compile exe` desktop
+  //    plain `dart run bclibc:build_native` + `dart compile exe` desktop
   //    workflow would place a manually-copied library next to the binary.
   final exeDir = File(Platform.resolvedExecutable).parent.path;
   final candidates = <String>[
@@ -103,8 +103,8 @@ ffi.DynamicLibrary _openLibrary() {
 
   throw FileSystemException(
     'Could not locate $libName (tried package: URI and ${candidates.join(", ")}). '
-    'Run `dart run dart_bclibc:build_native` for a plain Dart project, or add '
-    'dart_bclibc_flutter as a dependency for a Flutter app.',
+    'Run `dart run bclibc:build_native` for a plain Dart project, or add '
+    'bclibc_flutter as a dependency for a Flutter app.',
   );
 }
 

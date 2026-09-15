@@ -1,12 +1,12 @@
 // WASM/web smoke tests for BcLibCWeb.
 //
 // Uses the package's own checked-in wasm asset (assets/wasm/), copied into
-// this directory mirroring the assets/packages/dart_bclibc/... path Flutter
+// this directory mirroring the assets/packages/bclibc/... path Flutter
 // web serves it at, so BcLibCWeb.open()'s default scriptUrl resolves the
 // same way it would in a real Flutter web app:
-//   mkdir -p test/web/assets/packages/dart_bclibc/assets/wasm
+//   mkdir -p test/web/assets/packages/bclibc/assets/wasm
 //   cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
-//     test/web/assets/packages/dart_bclibc/assets/wasm/
+//     test/web/assets/packages/bclibc/assets/wasm/
 //
 // To rebuild assets/wasm/ itself from source: bclibc/build_wasm.sh, then
 // cp bclibc/build/web/bclibc_ffi.{js,wasm} assets/wasm/
@@ -17,7 +17,7 @@
 @TestOn('browser')
 library;
 
-import 'package:dart_bclibc_flutter/ffi/bclibc_ffi_web.dart';
+import 'package:bclibc_flutter/ffi/bclibc_ffi_web.dart';
 import 'package:test/test.dart';
 
 final _g7Table = [

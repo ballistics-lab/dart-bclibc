@@ -11,14 +11,14 @@
 // isn't available on web.
 //
 // ignore_for_file: implementation_imports
-// Deliberately reaches into dart_bclibc's lib/src — this package and
-// dart_bclibc are versioned and published together from the same monorepo.
+// Deliberately reaches into bclibc's lib/src — this package and
+// bclibc are versioned and published together from the same monorepo.
 
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
-import 'package:dart_bclibc/src/calculator_defaults.dart' show defaultConfig;
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/trajectory_data.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:bclibc/ffi/bclibc_types.dart';
+import 'package:bclibc/src/calculator_defaults.dart' show defaultConfig;
+import 'package:bclibc/src/shot.dart';
+import 'package:bclibc/src/trajectory_data.dart';
+import 'package:bclibc/src/unit.dart';
 
 import 'async_engine_io.dart'
     if (dart.library.js_interop) 'async_engine_web.dart'

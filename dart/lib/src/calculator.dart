@@ -13,10 +13,10 @@
 //   calc.setWeaponZero(shot, Distance.meter(100));
 //   final result = calc.fire(shot: shot, trajectoryRange: Distance.meter(1000));
 
-import 'package:dart_bclibc/ffi/bclibc_ffi.dart';
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/trajectory_data.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:bclibc/ffi/bclibc_ffi.dart';
+import 'package:bclibc/src/shot.dart';
+import 'package:bclibc/src/trajectory_data.dart';
+import 'package:bclibc/src/unit.dart';
 
 import 'calculator_core.dart';
 import 'calculator_defaults.dart';

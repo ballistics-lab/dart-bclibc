@@ -20,9 +20,9 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
+import 'package:bclibc/ffi/bclibc_types.dart';
 
-export 'package:dart_bclibc/ffi/bclibc_types.dart';
+export 'package:bclibc/ffi/bclibc_types.dart';
 
 // ============================================================================
 // Module loading
@@ -425,7 +425,7 @@ class BcLibCWeb implements BcEngine {
   /// pipeline).
   static Future<BcLibCWeb> open({
     String scriptUrl =
-        'assets/packages/dart_bclibc_flutter/assets/wasm/bclibc_ffi.js',
+        'assets/packages/bclibc_flutter/assets/wasm/bclibc_ffi.js',
     String globalName = 'bclibc_ffi',
   }) async {
     final module = await _loadModule(scriptUrl, globalName);

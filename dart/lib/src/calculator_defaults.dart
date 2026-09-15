@@ -3,8 +3,8 @@
 // imports) so AsyncCalculator's web path doesn't have to pull in
 // calculator.dart just for this constant.
 
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
-import 'package:dart_bclibc/src/constants.dart';
+import 'package:bclibc/ffi/bclibc_types.dart';
+import 'package:bclibc/src/constants.dart';
 
 // ---------------------------------------------------------------------------
 // Default config constants (mirror TS DEFAULT_CONFIG)

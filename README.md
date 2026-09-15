@@ -15,10 +15,10 @@ with RK4/Euler integration.
 
 This is a monorepo with two published packages:
 
-- **[`dart/`](dart) — [`dart_bclibc`](https://pub.dev/packages/dart_bclibc)**:
+- **[`dart/`](dart) — [`bclibc`](https://pub.dev/packages/bclibc)**:
   pure Dart, no Flutter dependency. FFI bindings, calculator/unit/conditions
   domain types. Works in any Dart project — CLI, server, or Flutter.
-- **[`flutter/`](flutter) — [`dart_bclibc_flutter`](https://pub.dev/packages/dart_bclibc_flutter)**:
+- **[`flutter/`](flutter) — [`bclibc_flutter`](https://pub.dev/packages/bclibc_flutter)**:
   Flutter plugin wrapper. Bundles the native library for
   Android/iOS/Linux/macOS/Windows and WebAssembly for Flutter Web, plus
   `AsyncCalculator` (needs a real web implementation, only available inside
@@ -27,7 +27,7 @@ This is a monorepo with two published packages:
 If you're building a plain Dart application, start with
 [`dart/README.md`](dart/README.md). If you're building a Flutter app, start
 with [`flutter/README.md`](flutter/README.md) — it re-exports everything
-from `dart_bclibc` plus the Flutter-specific pieces.
+from `bclibc` plus the Flutter-specific pieces.
 
 ## Building from source
 
@@ -68,10 +68,10 @@ See [LICENSE](LICENSE) for the full text.
 
 [License]: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
 
-[Dart Pub Version]: https://img.shields.io/pub/v/dart_bclibc?logo=dart&cacheSeconds=0
-[dart pub package]: https://pub.dev/packages/dart_bclibc
-[Flutter Pub Version]: https://img.shields.io/pub/v/dart_bclibc_flutter?logo=flutter&cacheSeconds=0
-[flutter pub package]: https://pub.dev/packages/dart_bclibc_flutter
+[Dart Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
+[dart pub package]: https://pub.dev/packages/bclibc
+[Flutter Pub Version]: https://img.shields.io/pub/v/bclibc_flutter?logo=flutter&cacheSeconds=0
+[flutter pub package]: https://pub.dev/packages/bclibc_flutter
 
 [bclibc repo]: https://github.com/ballistics-lab/bclibc
 [powered by bclibc]:

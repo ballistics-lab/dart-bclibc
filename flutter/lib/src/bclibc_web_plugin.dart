@@ -1,6 +1,6 @@
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
-/// Registers `dart_bclibc`'s web platform with Flutter's plugin registry.
+/// Registers `bclibc`'s web platform with Flutter's plugin registry.
 ///
 /// This package doesn't use platform channels on web — `AsyncCalculator`
 /// talks to the wasm engine directly via `dart:js_interop` — so there's

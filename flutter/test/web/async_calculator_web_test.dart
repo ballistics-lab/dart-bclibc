@@ -1,6 +1,6 @@
 // Web smoke tests for AsyncCalculator's web engine (BcLibCWeb-backed).
 //
-// Deliberately imports the full package barrel (package:dart_bclibc/bclibc.dart)
+// Deliberately imports the full package barrel (package:bclibc/bclibc.dart)
 // rather than individual files — that's what a real consumer does, and it's
 // the thing that must compile for web (bclibc.dart conditionally excludes
 // the native-only Calculator/BcLibC/bclibc_bindings.g.dart pieces on web;
@@ -12,7 +12,7 @@
 @TestOn('browser')
 library;
 
-import 'package:dart_bclibc_flutter/bclibc.dart';
+import 'package:bclibc_flutter/bclibc.dart';
 import 'package:test/test.dart';
 
 Shot _makeShot() {

@@ -7,10 +7,10 @@ otherwise instead of trying to auto-fix things during the release run (that
 auto-fix pattern -- bumping versions and pushing a commit to main *after*
 the tag already exists -- is exactly what can make a downstream tool that
 derives its version from `git describe` see "N commits past the tag" and
-reject it; dart_bclibc doesn't use that scheme today, but there's no upside
+reject it; bclibc doesn't use that scheme today, but there's no upside
 to inviting the failure mode).
 
-dart_bclibc and dart_bclibc_flutter are versioned in lockstep: one VERSION,
+bclibc and bclibc_flutter are versioned in lockstep: one VERSION,
 one `vX.Y.Z` tag, for both packages every release.
 
 What this script does, all as uncommitted working-tree edits for you to
@@ -26,7 +26,7 @@ review with `git diff` and commit yourself:
      ".../releases/tag/VERSION" for the first release, repoints
      "[Unreleased]").
   4. Bumps dart/pubspec.yaml's version, flutter/pubspec.yaml's version, and
-     flutter/pubspec.yaml's `dart_bclibc: ^...` dependency constraint, all
+     flutter/pubspec.yaml's `bclibc: ^...` dependency constraint, all
      to VERSION.
 
 It does NOT commit, tag, or push anything -- that's on you, after reviewing
@@ -156,7 +156,7 @@ def main() -> int:
     bump_field(REPO_ROOT / "flutter" / "pubspec.yaml", r"^version: .*$", f"version: {version}")
     bump_field(
         REPO_ROOT / "flutter" / "pubspec.yaml",
-        r"^(\s*dart_bclibc: )\^[^\s]+$",
+        r"^(\s*bclibc: )\^[^\s]+$",
         rf"\g<1>^{version}",
     )
 

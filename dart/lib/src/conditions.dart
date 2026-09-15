@@ -1,7 +1,7 @@
 import 'dart:math' as math;
-import 'package:dart_bclibc/src/constants.dart';
-import 'package:dart_bclibc/src/unit.dart';
-import 'package:dart_bclibc/src/vector.dart';
+import 'package:bclibc/src/constants.dart';
+import 'package:bclibc/src/unit.dart';
+import 'package:bclibc/src/vector.dart';
 
 class Atmo {
   late Distance _altitude;

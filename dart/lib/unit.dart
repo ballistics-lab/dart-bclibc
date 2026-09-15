@@ -1,1 +1,1 @@
-export 'package:dart_bclibc/src/unit.dart';
+export 'package:bclibc/src/unit.dart';

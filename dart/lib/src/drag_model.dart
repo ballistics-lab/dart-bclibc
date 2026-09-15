@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'package:dart_bclibc/src/constants.dart';
-import 'package:dart_bclibc/src/drag_tables.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:bclibc/src/constants.dart';
+import 'package:bclibc/src/drag_tables.dart';
+import 'package:bclibc/src/unit.dart';
 
 class BCPoint {
   final double bc;

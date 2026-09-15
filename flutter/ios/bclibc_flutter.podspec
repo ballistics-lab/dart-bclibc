@@ -3,7 +3,7 @@
 # Run `pod lib lint bclibc_ffi.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'dart_bclibc'
+  s.name             = 'bclibc_flutter'
   s.version          = '0.0.1'
   s.summary          = 'A new Flutter FFI plugin project.'
   s.description      = <<-DESC

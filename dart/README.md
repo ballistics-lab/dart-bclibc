@@ -1,4 +1,4 @@
-# dart_bclibc
+# bclibc
 
 Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) ballistics engine.
 
@@ -14,13 +14,13 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 
 A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships with the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source as a git submodule; no pre-built binaries required.
 
-Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/Windows native bundling, plus Web/WebAssembly support), depend on [`dart_bclibc_flutter`](../flutter) instead, which re-exports everything here.
+Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/Windows native bundling, plus Web/WebAssembly support), depend on [`bclibc_flutter`](../flutter) instead, which re-exports everything here.
 
 ---
 
 ## Table of Contents
 
-- [dart\_bclibc](#dart_bclibc)
+- [dart\_bclibc](#bclibc)
   - [Table of Contents](#table-of-contents)
   - [Quick start](#quick-start)
   - [API](#api)
@@ -47,7 +47,7 @@ Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/W
 ## Quick start
 
 ```dart
-import 'package:dart_bclibc/bclibc.dart';
+import 'package:bclibc/bclibc.dart';
 
 final bc = BcLibC.open(); // loads the native library once
 
@@ -139,15 +139,15 @@ detail now.
 
 `AsyncCalculator` — the `Future`-returning counterpart to `Calculator` that
 also works on Flutter Web (wasm-backed) — lives in
-[`dart_bclibc_flutter`](../flutter) instead of this package, since a real web
+[`bclibc_flutter`](../flutter) instead of this package, since a real web
 implementation only makes sense inside a Flutter Web app (see that package's
-README for `Web / WebAssembly`). This package (`dart_bclibc`) exposes the
+README for `Web / WebAssembly`). This package (`bclibc`) exposes the
 synchronous `Calculator` only; wrap it in your own `Isolate.run` if you want
 off-isolate execution in a plain Dart project:
 
 ```dart
 import 'dart:isolate';
-import 'package:dart_bclibc/bclibc.dart';
+import 'package:bclibc/bclibc.dart';
 
 final result = await Isolate.run(
   () => Calculator().fire(shot: shot, trajectoryRange: Distance.meter(1000)),
@@ -171,7 +171,7 @@ When using `BcShot`:
 `lib/unit.dart` provides typed unit wrappers with an `in_()` / `toDouble()` API:
 
 ```dart
-import 'package:dart_bclibc/unit.dart';
+import 'package:bclibc/unit.dart';
 
 final t = Temperature.celsius(15.0);
 print(t.in_(TemperatureUnit.fahrenheit)); // 59.0
@@ -226,18 +226,18 @@ caller's working directory. `BcLibC.open()` also checks the `BCLIBC_FFI_PATH`
 environment variable first, if set.
 
 > For Flutter apps the native library is instead built and bundled automatically by
-> `flutter build`, via `dart_bclibc_flutter`'s platform `CMakeLists.txt`/Gradle/podspec
+> `flutter build`, via `bclibc_flutter`'s platform `CMakeLists.txt`/Gradle/podspec
 > integration — no changes to the app's own platform config are required. See
-> [`dart_bclibc_flutter`'s README](../flutter/README.md) for details.
+> [`bclibc_flutter`'s README](../flutter/README.md) for details.
 
 #### Consuming apps: `dart test`
 
-Apps that depend on `dart_bclibc` (not `dart_bclibc_flutter`) need to build the
+Apps that depend on `bclibc` (not `bclibc_flutter`) need to build the
 native library explicitly before testing/running, since plain `dart test`/`dart run`
 never run a platform build:
 
 ```bash
-dart run dart_bclibc:build_native
+dart run bclibc:build_native
 ```
 
 Wire it into your own test target, e.g. in a `Makefile`:
@@ -247,7 +247,7 @@ test: build-bclibc
 	dart test
 
 build-bclibc:
-	dart run dart_bclibc:build_native
+	dart run bclibc:build_native
 ```
 
 ### Regenerate FFI bindings
@@ -280,7 +280,7 @@ make test
 | Windows  | `bclibc_ffi.dll`      |
 
 Android, iOS, and WebAssembly are covered by
-[`dart_bclibc_flutter`](../flutter) instead, since they only ever run inside
+[`bclibc_flutter`](../flutter) instead, since they only ever run inside
 a Flutter app. During development the path can be overridden via the
 `BCLIBC_FFI_PATH` environment variable.
 
@@ -321,8 +321,8 @@ See [LICENSE](LICENSE) for the full text. See [CHANGELOG](CHANGELOG.md) for rele
 
 [License]: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
 
-[Pub Version]: https://img.shields.io/pub/v/dart_bclibc?logo=dart&cacheSeconds=0
-[pub package]: https://pub.dev/packages/dart_bclibc
+[Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
+[pub package]: https://pub.dev/packages/bclibc
 
 [Linux]: https://img.shields.io/badge/Linux-x86__64%20%7C%20arm64-grey?logo=linux&logoColor=black&labelColor=FCC624
 [Windows]: https://img.shields.io/badge/x86__64-grey?logo=windows&logoColor=black&label=Windows&labelColor=0078D4

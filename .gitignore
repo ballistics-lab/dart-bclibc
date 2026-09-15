@@ -33,7 +33,7 @@ pubspec.lock
 build/
 coverage/
 
-# Native build artifacts — `dart run dart_bclibc:build_native` writes here
+# Native build artifacts — `dart run bclibc:build_native` writes here
 # (dart/lib/native/), and a local path-dependency build can also write
 # straight into either package's own directory tree.
 lib/native/

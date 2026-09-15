@@ -7,11 +7,11 @@
 //
 // Kept free of dart:ffi/dart:io/js_interop imports for exactly that reason.
 
-import 'package:dart_bclibc/ffi/bclibc_types.dart';
-import 'package:dart_bclibc/src/conditions.dart';
-import 'package:dart_bclibc/src/shot.dart';
-import 'package:dart_bclibc/src/trajectory_data.dart';
-import 'package:dart_bclibc/src/unit.dart';
+import 'package:bclibc/ffi/bclibc_types.dart';
+import 'package:bclibc/src/conditions.dart';
+import 'package:bclibc/src/shot.dart';
+import 'package:bclibc/src/trajectory_data.dart';
+import 'package:bclibc/src/unit.dart';
 
 double _toFeet(Distance d) => d.in_(Unit.foot);
 
