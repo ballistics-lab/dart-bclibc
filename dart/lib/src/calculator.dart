@@ -59,6 +59,21 @@ class Calculator {
         targetDistance,
       );
 
+  /// Returns the vertical hold, windage, and target-range trajectory point.
+  ///
+  /// The point is retained by the native zero solver, avoiding a separate
+  /// trajectory integration after the zero angle has been found.
+  (Angular, Angular, TrajectoryData) aimingSolutionForTarget(
+    Shot shot,
+    Distance targetDistance,
+  ) => calcAimingSolutionForTarget(
+    _engine,
+    method,
+    config,
+    shot,
+    targetDistance,
+  );
+
   /// Zeros the weapon by storing the required barrel elevation in
   /// [Weapon.zeroElevation] and resetting [shot.relativeAngle] to zero.
   ///

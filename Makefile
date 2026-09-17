@@ -1,4 +1,4 @@
-.PHONY: build ffigen test clean format sync-bclibc verify-bclibc install-hooks
+.PHONY: build ffigen test clean format build-wasm sync-bclibc verify-bclibc install-hooks
 
 # Cross-platform helpers
 ifeq ($(OS),Windows_NT)
@@ -34,6 +34,16 @@ test: build
 format:
 	cd dart && dart format bin/ lib/
 	cd flutter && dart format lib/
+
+# Rebuild Flutter Web's checked-in bclibc_ffi artifacts from the pinned
+# flutter/bclibc submodule. Run `make verify-bclibc` afterward (or use the
+# target below) to ensure the embedded version matches both gitlinks.
+build-wasm:
+	git submodule update --init flutter/bclibc
+	cd flutter/bclibc && ./build_wasm.sh
+	cp flutter/bclibc/build/web/bclibc_ffi.js flutter/assets/wasm/
+	cp flutter/bclibc/build/web/bclibc_ffi.wasm flutter/assets/wasm/
+	$(MAKE) verify-bclibc
 
 clean:
 	$(RM_DIR) dart/build

@@ -14,11 +14,16 @@ packages are released together under the same tag/version.
 
 ### Changed
 
-- Pin `bclibc` to `v2.0.0-beta.3` and rebuild the web WASM assets with its
-  Cash-Karp and Dormand-Prince integrators.
+- Pin `bclibc` to `v2.0.0-beta.6` and rebuild the web WASM assets with its
+  Cash-Karp and Dormand-Prince integrators plus zero-point FFI exports.
 - `AsyncCalculator.fire()` now returns the updated `HitResult` API with
   exact `records`, physical `events`, and scheduled `samples`; `trajectory`
   remains a deprecated alias for `records`.
+
+### Added
+
+- `AsyncCalculator.aimingSolutionForTarget()` returns vertical hold, windage,
+  and the target-range trajectory point through both native and WASM engines.
 
 ## [0.2.3] - 2026-09-15
 

@@ -11,11 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Pin `bclibc` to `v2.0.0-beta.3`, adding experimental Cash-Karp and
-  Dormand-Prince integration methods.
+- Pin `bclibc` to `v2.0.0-beta.6`, adding experimental Cash-Karp and
+  Dormand-Prince integration methods and the zero-point FFI result API.
 - `HitResult` now separates exact chronological `records`, physical `events`,
   and stable scheduled `samples`. `trajectory` remains as a deprecated alias
   for `records`.
+
+### Added
+
+- `Calculator.aimingSolutionForTarget()` returns vertical hold, windage, and
+  the target-range trajectory point from the native zero-point solve.
 
 ## [0.2.3] - 2026-09-15
 
