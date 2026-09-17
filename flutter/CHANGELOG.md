@@ -16,6 +16,9 @@ packages are released together under the same tag/version.
 
 - Pin `bclibc` to `v2.0.0-beta.2` and rebuild the web WASM assets with its
   Cash-Karp and Dormand-Prince integrators.
+- `AsyncCalculator.fire()` now returns the updated `HitResult` API with
+  exact `records`, physical `events`, and scheduled `samples`; `trajectory`
+  remains a deprecated alias for `records`.
 
 ## [0.2.3] - 2026-09-15
 
