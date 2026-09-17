@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Pin `bclibc` to `v2.0.0-beta.2`, adding experimental Cash-Karp and
+- Pin `bclibc` to `v2.0.0-beta.3`, adding experimental Cash-Karp and
   Dormand-Prince integration methods.
 - `HitResult` now separates exact chronological `records`, physical `events`,
   and stable scheduled `samples`. `trajectory` remains as a deprecated alias
