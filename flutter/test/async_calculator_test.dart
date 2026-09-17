@@ -70,8 +70,8 @@ void main() {
 
       expect(asyncResult.length, syncResult.length);
       expect(
-        asyncResult.trajectory.last.distance.in_(Unit.meter),
-        closeTo(syncResult.trajectory.last.distance.in_(Unit.meter), 1e-6),
+        asyncResult.records.last.distance.in_(Unit.meter),
+        closeTo(syncResult.records.last.distance.in_(Unit.meter), 1e-6),
       );
     });
 
