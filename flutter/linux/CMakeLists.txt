@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 set(PROJECT_NAME "bclibc_flutter")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
-set(BCLIBC_VERSION "89132f5c5d0cdfc2867d70f87fd7f6608d8614f4")
+set(BCLIBC_VERSION "d95705c17a58a475e5eff0ec54057b2c81835db5")
 
 # ============================================================================
 # bclibc_flutter – thin C wrapper over the embedded bclibc ballistics engine

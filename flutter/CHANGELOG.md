@@ -10,6 +10,11 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Changed
+
+- Pin `bclibc` to `v2.0.0-beta.2` and rebuild the web WASM assets with its
+  Cash-Karp and Dormand-Prince integrators.
+
 ## [0.2.3] - 2026-09-15
 
 ### Changed

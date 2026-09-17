@@ -95,7 +95,7 @@ check_described_version() {
 
 # ── 3. wasm asset ─────────────────────────────────────────────────────────────
 mapfile -t wasm_versions < <(staged "$WASM" |
-    LC_ALL=C grep -aoE '(^|[^0-9.])[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+-g[0-9a-f]{7,40})?' |
+    LC_ALL=C grep -aoE '(^|[^0-9.])[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?' |
     sed -E 's/^[^0-9]//' | sort -u)
 if [[ ${#wasm_versions[@]} -ne 1 ]]; then
     fail "$WASM: expected exactly one embedded version string, found ${#wasm_versions[@]}: ${wasm_versions[*]:-none}"
