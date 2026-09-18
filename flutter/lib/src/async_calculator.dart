@@ -44,6 +44,13 @@ class AsyncCalculator {
     config,
   );
 
+  /// Async counterpart to [Calculator.aimingSolutionForTarget].
+  Future<(Angular, Angular, TrajectoryData)> aimingSolutionForTarget(
+    Shot shot,
+    Distance targetDistance,
+  ) =>
+      engine.asyncAimingSolutionForTarget(shot, targetDistance, method, config);
+
   /// Async counterpart to [Calculator.setWeaponZero].
   ///
   /// The zero-finding itself runs off-isolate (native) or through the

@@ -92,6 +92,34 @@ Angular calcBarrelElevationForTarget(
   return Angular(totalRad - shot.lookAngle.in_(Unit.radian), Unit.radian);
 }
 
+/// Calculates the holdover, windage, and trajectory point for [targetDistance].
+(Angular, Angular, TrajectoryData) calcAimingSolutionForTarget(
+  BcEngine engine,
+  BcIntegrationMethod method,
+  BcConfig config,
+  Shot shot,
+  Distance targetDistance,
+) {
+  final result = engine.findZeroPointShot(
+    toBcShot(shot, method, config),
+    _toFeet(targetDistance),
+  );
+  final targetZeroElevation = Angular(
+    result.angleRad - shot.lookAngle.in_(Unit.radian),
+    Unit.radian,
+  );
+  final verticalHold = Angular(
+    targetZeroElevation.in_(Unit.radian) -
+        shot.weapon.zeroElevation.in_(Unit.radian),
+    Unit.radian,
+  );
+  return (
+    verticalHold,
+    Angular(result.point.windageAngleRad, Unit.radian),
+    toTrajectoryData(result.point),
+  );
+}
+
 /// Fires a shot and returns the full trajectory as a [HitResult].
 ///
 /// [trajectoryRange] and [trajectoryStep] accept a [Distance] object or

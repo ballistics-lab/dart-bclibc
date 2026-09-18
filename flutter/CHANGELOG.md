@@ -10,6 +10,21 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+## [1.0.0-beta.1] - 2026-09-17
+
+### Changed
+
+- Pin `bclibc` to `v2.0.0-beta.7` and rebuild the web WASM assets with its
+  Cash-Karp and Dormand-Prince integrators plus zero-point FFI exports.
+- `AsyncCalculator.fire()` now returns the updated `HitResult` API with
+  exact `records`, physical `events`, and scheduled `samples`; `trajectory`
+  remains a deprecated alias for `records`.
+
+### Added
+
+- `AsyncCalculator.aimingSolutionForTarget()` returns vertical hold, windage,
+  and the target-range trajectory point through both native and WASM engines.
+
 ## [0.2.3] - 2026-09-15
 
 ### Changed
@@ -65,7 +80,8 @@ packages are released together under the same tag/version.
   Android/iOS/Linux/macOS/Windows and Web/WebAssembly support, plus
   `AsyncCalculator`. Re-exports everything from `bclibc`.
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.1...HEAD
+[1.0.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0-beta.1
 [0.2.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0...v0.2.1

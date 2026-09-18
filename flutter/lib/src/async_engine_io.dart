@@ -28,6 +28,18 @@ Future<Angular> asyncBarrelElevationForTarget(
   ).barrelElevationForTarget(shot, targetDistance),
 );
 
+Future<(Angular, Angular, TrajectoryData)> asyncAimingSolutionForTarget(
+  Shot shot,
+  Distance targetDistance,
+  BcIntegrationMethod method,
+  BcConfig config,
+) => Isolate.run(
+  () => Calculator(
+    method: method,
+    config: config,
+  ).aimingSolutionForTarget(shot, targetDistance),
+);
+
 Future<HitResult> asyncFire({
   required Shot shot,
   required Distance trajectoryRange,

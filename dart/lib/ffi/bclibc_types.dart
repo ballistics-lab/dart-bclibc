@@ -12,7 +12,9 @@
 enum BcIntegrationMethod {
   rk4(0),
   euler(1),
-  velocityVerlet(2);
+  velocityVerlet(2),
+  cashKarp(3),
+  dopri(4);
 
   final int value;
   const BcIntegrationMethod(this.value);
@@ -21,6 +23,8 @@ enum BcIntegrationMethod {
     0 => rk4,
     1 => euler,
     2 => velocityVerlet,
+    3 => cashKarp,
+    4 => dopri,
     _ => throw ArgumentError('Unknown value for BcIntegrationMethod: $value'),
   };
 }
@@ -235,6 +239,14 @@ class BcMaxRangeResult {
   const BcMaxRangeResult(this.maxRangeFt, this.angleAtMaxRad);
 }
 
+/// Result of a lower-arc zero solve, including the point at the requested
+/// target range.
+class BcZeroPointResult {
+  final double angleRad;
+  final BcTrajectoryData point;
+  const BcZeroPointResult(this.angleRad, this.point);
+}
+
 class BcHitResult {
   final List<BcTrajectoryData> trajectory;
   final BcTerminationReason reason;
@@ -271,6 +283,7 @@ abstract class BcEngine {
     double highAngleDeg,
   });
   double findZeroAngleShot(BcShot shot, double distanceFt);
+  BcZeroPointResult findZeroPointShot(BcShot shot, double distanceFt);
   BcHitResult integrateShot(BcShot shot, BcTrajectoryRequest request);
   BcInterception integrateAtShot(
     BcShot shot,

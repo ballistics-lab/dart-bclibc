@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:bclibc/src/unit.dart';
 import 'package:bclibc/src/shot.dart';
 
@@ -75,32 +77,143 @@ class TrajectoryData {
       TrajFlag.getName(flag),
     ];
   }
+
+  TrajectoryData copyWithFlag(int flag) => TrajectoryData(
+    time: time,
+    distance: distance,
+    velocity: velocity,
+    mach: mach,
+    height: height,
+    slantHeight: slantHeight,
+    dropAngle: dropAngle,
+    windage: windage,
+    windageAngle: windageAngle,
+    slantDistance: slantDistance,
+    angle: angle,
+    densityRatio: densityRatio,
+    drag: drag,
+    energy: energy,
+    ogw: ogw,
+    flag: flag,
+  );
 }
 
-class HitResult {
+class HitResult extends Iterable<TrajectoryData> {
+  static final _eventFlags =
+      TrajFlag.zero.value |
+      TrajFlag.mach.value |
+      TrajFlag.apex.value |
+      TrajFlag.mrt.value;
+  static const _sameInstantRelativeTolerance = 1e-3;
+  static const _sameInstantAbsoluteTolerance = 1e-6;
+
   final Shot shot;
-  final List<TrajectoryData> trajectory;
+  final List<TrajectoryData> records;
   final int filterFlags;
   final Exception? error;
 
-  HitResult(this.shot, this.trajectory, {this.filterFlags = 0, this.error});
+  HitResult(
+    this.shot,
+    List<TrajectoryData> records, {
+    this.filterFlags = 0,
+    this.error,
+  }) : records = List.unmodifiable(records);
 
-  int get length => trajectory.length;
+  /// Exact physical event roots (ZERO, MACH, APEX, and MRT).
+  late final List<TrajectoryData> events = List.unmodifiable(
+    records.where((row) => (row.flag & _eventFlags) != 0),
+  );
+
+  /// Scheduled samples, with an event flag attached only at the same instant.
+  late final List<TrajectoryData> samples = _buildSamples();
+
+  @Deprecated('Use records for exact results or samples for scheduled output.')
+  List<TrajectoryData> get trajectory => records;
+
+  @override
+  int get length => records.length;
+
+  @override
+  Iterator<TrajectoryData> get iterator => records.iterator;
+
+  TrajectoryData operator [](int index) => records[index];
+
+  List<TrajectoryData> _buildSamples() {
+    final scheduled = records
+        .where(
+          (row) =>
+              (row.flag & TrajFlag.range.value) != 0 ||
+              (row.flag & _eventFlags) == 0,
+        )
+        .toList();
+    if (scheduled.isEmpty) return const [];
+
+    final projected = List<TrajectoryData>.of(scheduled);
+    for (final event in events) {
+      final index = _nearestSampleIndex(scheduled, event.time);
+      if (_isSameInstant(scheduled[index].time, event.time)) {
+        final sample = projected[index];
+        projected[index] = sample.copyWithFlag(sample.flag | event.flag);
+      }
+    }
+    return List.unmodifiable(projected);
+  }
+
+  int _nearestSampleIndex(List<TrajectoryData> scheduled, double time) {
+    var right = 0;
+    while (right < scheduled.length && scheduled[right].time < time) {
+      right++;
+    }
+    if (right == 0) return 0;
+    if (right == scheduled.length) return scheduled.length - 1;
+    final left = right - 1;
+    return time - scheduled[left].time < scheduled[right].time - time
+        ? left
+        : right;
+  }
+
+  bool _isSameInstant(double first, double second) {
+    final difference = (first - second).abs();
+    return difference <= _sameInstantAbsoluteTolerance ||
+        difference <=
+            _sameInstantRelativeTolerance * math.max(first.abs(), second.abs());
+  }
+
+  void _checkFlag(TrajFlag requested) {
+    if ((filterFlags & requested.value) == 0) {
+      throw StateError(
+        '${TrajFlag.getName(requested.value)} was not requested in trajectory.',
+      );
+    }
+  }
+
+  /// Returns the first exact row matching [requested], or null when absent.
+  TrajectoryData? flag(TrajFlag requested) {
+    _checkFlag(requested);
+    final rows = (requested.value & _eventFlags) != 0 ? events : records;
+    for (final row in rows) {
+      if ((row.flag & requested.value) != 0) return row;
+    }
+    return null;
+  }
 
   TrajectoryData getAtDistance(Distance d) {
     final target = d.in_(Unit.foot);
-    final index = trajectory.indexWhere(
+    final index = records.indexWhere(
       (step) => step.distance.in_(Unit.foot) >= target,
     );
     if (index == -1) {
-      return trajectory.last;
+      return records.last;
     }
-    return trajectory[index];
+    return records[index];
   }
 
   List<TrajectoryData> get zeros {
-    return trajectory
+    _checkFlag(TrajFlag.zero);
+    final result = events
         .where((step) => (step.flag & TrajFlag.zero.value) != 0)
         .toList();
+    if (result.isEmpty) throw StateError("Can't find zero crossing points");
+    return List.unmodifiable(result);
   }
 }

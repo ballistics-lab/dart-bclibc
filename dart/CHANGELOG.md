@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.1] - 2026-09-17
+
+### Changed
+
+- Pin `bclibc` to `v2.0.0-beta.7`, adding experimental Cash-Karp and
+  Dormand-Prince integration methods and the zero-point FFI result API.
+- `HitResult` now separates exact chronological `records`, physical `events`,
+  and stable scheduled `samples`. `trajectory` remains as a deprecated alias
+  for `records`.
+
+### Added
+
+- `Calculator.aimingSolutionForTarget()` returns vertical hold, windage, and
+  the target-range trajectory point from the native zero-point solve.
+
 ## [0.2.3] - 2026-09-15
 
 ### Changed
@@ -240,7 +255,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.1...HEAD
+[1.0.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0-beta.1
 [0.2.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.0...v0.2.1

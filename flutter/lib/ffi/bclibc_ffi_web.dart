@@ -140,15 +140,18 @@ class _Layout {
   int get interceptionRawData => v[73];
   int get interceptionFullData => v[74];
 
-  int get errorSize => v[75];
-  int get errorCode => v[76];
-  int get errorMessage => v[77];
-  int get errorF64_0 => v[78];
-  int get errorF64_1 => v[79];
-  int get errorF64_2 => v[80];
-  int get errorI32_0 => v[81];
+  int get zeroPointSize => v[75];
+  int get zeroPointAngleRad => v[76];
+  int get zeroPointPoint => v[77];
+  int get errorSize => v[78];
+  int get errorCode => v[79];
+  int get errorMessage => v[80];
+  int get errorF64_0 => v[81];
+  int get errorF64_1 => v[82];
+  int get errorF64_2 => v[83];
+  int get errorI32_0 => v[84];
 
-  static const int fieldCount = 82;
+  static const int fieldCount = 85;
 }
 
 // ============================================================================
@@ -536,6 +539,25 @@ class BcLibCWeb implements BcEngine {
         ).toDartInt;
         if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
         return _heap(_module).getFloat64(outAnglePtr, Endian.little);
+      });
+
+  @override
+  BcZeroPointResult findZeroPointShot(BcShot shot, double distanceFt) =>
+      _using(_module, (arena) {
+        final bd = _heap(_module);
+        final shotPtr = _fillShot(arena, bd, _layout, shot);
+        final outPtr = arena.malloc(_layout.zeroPointSize);
+        final errPtr = arena.malloc(_layout.errorSize);
+        final st = _module.callMethodVarArgs<JSNumber>(
+          '_BCLIBCFFI_find_zero_point_shot'.toJS,
+          [shotPtr.toJS, distanceFt.toJS, outPtr.toJS, errPtr.toJS],
+        ).toDartInt;
+        if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+        final result = _heap(_module);
+        return BcZeroPointResult(
+          result.getFloat64(outPtr + _layout.zeroPointAngleRad, Endian.little),
+          _readTrajData(result, outPtr + _layout.zeroPointPoint, _layout),
+        );
       });
 
   @override

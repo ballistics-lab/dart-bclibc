@@ -145,6 +145,47 @@ class BcLibCFFIBindings {
         )
       >();
 
+  /// @brief Find the lower zero and its terminal trajectory point.
+  ///
+  /// Uses the Newton solver with Ridder's fallback. The returned point is
+  /// captured from the successful solve, so no final trajectory integration
+  /// is performed.
+  ///
+  /// @param props        Pre-computed shot properties.
+  /// @param distance_ft  Slant distance to the target (ft).
+  /// @param out          Output zero angle and terminal RANGE point.
+  /// @param err          Error details when the return value is not OK.
+  /// @return BCLIBCFFI_OK on success; an error status otherwise.
+  int BCLIBCFFI_find_zero_point(
+    ffi.Pointer<BCLIBCFFI_ShotProps> props,
+    double distance_ft,
+    ffi.Pointer<BCLIBCFFI_ZeroPointResult> out,
+    ffi.Pointer<BCLIBCFFI_Error> err,
+  ) {
+    return _BCLIBCFFI_find_zero_point(props, distance_ft, out, err);
+  }
+
+  late final _BCLIBCFFI_find_zero_pointPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<BCLIBCFFI_ShotProps>,
+            ffi.Double,
+            ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+            ffi.Pointer<BCLIBCFFI_Error>,
+          )
+        >
+      >('BCLIBCFFI_find_zero_point');
+  late final _BCLIBCFFI_find_zero_point =
+      _BCLIBCFFI_find_zero_pointPtr.asFunction<
+        int Function(
+          ffi.Pointer<BCLIBCFFI_ShotProps>,
+          double,
+          ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+          ffi.Pointer<BCLIBCFFI_Error>,
+        )
+      >();
+
   /// Integrate trajectory and return filtered records.
   ///
   /// On success *out_records points to a heap-allocated BCLIBCFFI_TrajectoryData array
@@ -346,6 +387,47 @@ class BcLibCFFIBindings {
           ffi.Pointer<BCLIBCFFI_Shot>,
           double,
           ffi.Pointer<ffi.Double>,
+          ffi.Pointer<BCLIBCFFI_Error>,
+        )
+      >();
+
+  /// @brief Find the lower zero for a user-facing shot and its terminal point.
+  ///
+  /// Converts `shot` to engine properties, then uses the Newton solver with
+  /// Ridder's fallback. The returned point is captured from the successful
+  /// solve, so no final trajectory integration is performed.
+  ///
+  /// @param shot         User-facing shot descriptor.
+  /// @param distance_ft  Slant distance to the target (ft).
+  /// @param out          Output zero angle and terminal RANGE point.
+  /// @param err          Error details when the return value is not OK.
+  /// @return BCLIBCFFI_OK on success; an error status otherwise.
+  int BCLIBCFFI_find_zero_point_shot(
+    ffi.Pointer<BCLIBCFFI_Shot> shot,
+    double distance_ft,
+    ffi.Pointer<BCLIBCFFI_ZeroPointResult> out,
+    ffi.Pointer<BCLIBCFFI_Error> err,
+  ) {
+    return _BCLIBCFFI_find_zero_point_shot(shot, distance_ft, out, err);
+  }
+
+  late final _BCLIBCFFI_find_zero_point_shotPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<BCLIBCFFI_Shot>,
+            ffi.Double,
+            ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+            ffi.Pointer<BCLIBCFFI_Error>,
+          )
+        >
+      >('BCLIBCFFI_find_zero_point_shot');
+  late final _BCLIBCFFI_find_zero_point_shot =
+      _BCLIBCFFI_find_zero_point_shotPtr.asFunction<
+        int Function(
+          ffi.Pointer<BCLIBCFFI_Shot>,
+          double,
+          ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
           ffi.Pointer<BCLIBCFFI_Error>,
         )
       >();
@@ -631,7 +713,14 @@ enum BCLIBCFFI_BaseTrajInterpKey {
 enum BCLIBCFFI_IntegrationMethod {
   BCLIBCFFI_INTEGRATION_RK4(0),
   BCLIBCFFI_INTEGRATION_EULER(1),
-  BCLIBCFFI_INTEGRATION_VELOCITY_VERLET(2);
+  BCLIBCFFI_INTEGRATION_VELOCITY_VERLET(2),
+
+  /// EXPERIMENTAL -- see bclibc/cash_karp.hpp's doc comment before
+  /// relying on this for anything accuracy-sensitive: known event-
+  /// interpolation regressions under this method's sparse/irregular
+  /// step spacing (see project issue tracker).
+  BCLIBCFFI_INTEGRATION_CASH_KARP(3),
+  BCLIBCFFI_INTEGRATION_DORMAND_PRINCE(4);
 
   final int value;
   const BCLIBCFFI_IntegrationMethod(this.value);
@@ -640,6 +729,8 @@ enum BCLIBCFFI_IntegrationMethod {
     0 => BCLIBCFFI_INTEGRATION_RK4,
     1 => BCLIBCFFI_INTEGRATION_EULER,
     2 => BCLIBCFFI_INTEGRATION_VELOCITY_VERLET,
+    3 => BCLIBCFFI_INTEGRATION_CASH_KARP,
+    4 => BCLIBCFFI_INTEGRATION_DORMAND_PRINCE,
     _ => throw ArgumentError(
       'Unknown value for BCLIBCFFI_IntegrationMethod: $value',
     ),
@@ -1007,6 +1098,20 @@ final class BCLIBCFFI_MaxRangeResult extends ffi.Struct {
 
   @ffi.Double()
   external double angle_at_max_rad;
+}
+
+/// @brief Result of a lower-arc zero solve.
+///
+/// `point` is the terminal RANGE point evaluated by the successful
+/// zero-finding iteration. It is not obtained by a separate final
+/// trajectory integration.
+final class BCLIBCFFI_ZeroPointResult extends ffi.Struct {
+  /// < Solved barrel elevation (radians).
+  @ffi.Double()
+  external double angle_rad;
+
+  /// < Terminal RANGE point of the solve.
+  external BCLIBCFFI_TrajectoryData point;
 }
 
 final class BCLIBCFFI_Interception extends ffi.Struct {

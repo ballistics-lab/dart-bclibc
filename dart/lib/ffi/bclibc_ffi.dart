@@ -42,7 +42,8 @@ ffi.DynamicLibrary _openLibrary() {
   if (env != null && env.isNotEmpty) return ffi.DynamicLibrary.open(env);
 
   final libName = _libName();
-  final platform = Platform.operatingSystem; // 'linux', 'macos', 'windows', 'android', 'ios'
+  final platform =
+      Platform.operatingSystem; // 'linux', 'macos', 'windows', 'android', 'ios'
 
   // 1. `package:` URI resolution — works in JIT mode (`dart run`/`flutter
   //    run`), backed by .dart_tool/package_config.json and the location
@@ -309,6 +310,21 @@ class BcLibC implements BcEngine {
     if (st != 0) _throwFromError(err.ref);
     return outAngle.value;
   });
+
+  @override
+  BcZeroPointResult findZeroPointShot(BcShot shot, double distanceFt) =>
+      using((arena) {
+        final p = arena<BCLIBCFFI_Shot>();
+        final out = arena<BCLIBCFFI_ZeroPointResult>();
+        final err = arena<BCLIBCFFI_Error>();
+        shot._fill(p.ref, arena);
+        final st = _b.BCLIBCFFI_find_zero_point_shot(p, distanceFt, out, err);
+        if (st != 0) _throwFromError(err.ref);
+        return BcZeroPointResult(
+          out.ref.angle_rad,
+          _trajDataFromNative(out.ref.point),
+        );
+      });
 
   @override
   BcHitResult integrateShot(BcShot shot, BcTrajectoryRequest request) => using((

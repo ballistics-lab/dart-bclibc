@@ -60,11 +60,8 @@ void main() {
         trajectoryRange: Distance.meter(1000),
         trajectoryStep: Distance.meter(100),
       );
-      expect(result.trajectory, isNotEmpty);
-      expect(
-        result.trajectory.last.distance.in_(Unit.meter),
-        closeTo(1000, 1.0),
-      );
+      expect(result.records, isNotEmpty);
+      expect(result.records.last.distance.in_(Unit.meter), closeTo(1000, 1.0));
     });
 
     test(

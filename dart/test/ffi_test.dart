@@ -148,6 +148,19 @@ void main() {
     });
   });
 
+  group('findZeroPointShot', () {
+    test('returns the lower zero angle and terminal RANGE point', () {
+      final result = bc.findZeroPointShot(_makeShot(), 1000.0);
+      expect(result.angleRad, greaterThan(0.0));
+      expect(result.point.distanceFt, closeTo(1000.0, 1e-6));
+      expect(result.point.slantDistanceFt, closeTo(1000.0, 1e-3));
+      expect(
+        result.point.flag & BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE.value,
+        isNot(0),
+      );
+    });
+  });
+
   // ── findApexShot ─────────────────────────────────────────────────────────
 
   group('findApexShot', () {
