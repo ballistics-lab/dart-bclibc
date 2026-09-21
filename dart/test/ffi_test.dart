@@ -246,6 +246,34 @@ void main() {
       final result = bc.integrateShot(shot, request);
       expect(result.trajectory, isNotEmpty);
     });
+
+    test('adaptive methods agree with RK4 at 500 yd', () {
+      BcTrajectoryRequest request() => BcTrajectoryRequest(
+        rangeLimitFt: 500.0 * 3.28084,
+        rangeStepFt: 100.0 * 3.28084,
+        filterFlags: BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE.value,
+      );
+      final ref = bc.integrateShot(_makeShot(), request()).trajectory.last;
+      for (final method in [
+        BcIntegrationMethod.rkck,
+        BcIntegrationMethod.dopri,
+        BcIntegrationMethod.tsitouras,
+      ]) {
+        final result = bc.integrateShot(_makeShot(method: method), request());
+        expect(result.trajectory, isNotEmpty, reason: '$method');
+        final last = result.trajectory.last;
+        expect(
+          last.distanceFt,
+          closeTo(ref.distanceFt, 1.0),
+          reason: '$method',
+        );
+        expect(
+          last.velocityFps,
+          closeTo(ref.velocityFps, 5.0),
+          reason: '$method',
+        );
+      }
+    });
   });
 
   // ── integrateAtShot ──────────────────────────────────────────────────────

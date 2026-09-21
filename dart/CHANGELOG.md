@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Pin `bclibc` to `v2.0.0-beta.8`, adding the adaptive Tsitouras 5(4)
+  integration method.
+
+### Added
+
+- `BcIntegrationMethod.tsitouras` selects the Tsitouras 5(4) integrator.
+- FFI test covering the Cash-Karp, Dormand-Prince and Tsitouras integrators
+  against RK4.
+
 ## [1.0.0-beta.1] - 2026-09-17
 
 ### Changed

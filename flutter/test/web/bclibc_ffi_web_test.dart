@@ -157,6 +157,9 @@ void main() {
   for (final method in [
     BcIntegrationMethod.euler,
     BcIntegrationMethod.velocityVerlet,
+    BcIntegrationMethod.rkck,
+    BcIntegrationMethod.dopri,
+    BcIntegrationMethod.tsitouras,
   ]) {
     test('integrateShot ${method.name} method also produces a trajectory', () {
       final shot = _makeShot(method: method);
