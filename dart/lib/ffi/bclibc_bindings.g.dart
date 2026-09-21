@@ -720,7 +720,12 @@ enum BCLIBCFFI_IntegrationMethod {
   /// interpolation regressions under this method's sparse/irregular
   /// step spacing (see project issue tracker).
   BCLIBCFFI_INTEGRATION_CASH_KARP(3),
-  BCLIBCFFI_INTEGRATION_DORMAND_PRINCE(4);
+  BCLIBCFFI_INTEGRATION_DORMAND_PRINCE(4),
+
+  /// Adaptive Tsitouras 5(4) ("Tsit5") -- same FSAL shape and step-size
+  /// controller as BCLIBCFFI_INTEGRATION_DORMAND_PRINCE, see
+  /// bclibc/tsitouras.hpp's doc comment.
+  BCLIBCFFI_INTEGRATION_TSITOURAS(5);
 
   final int value;
   const BCLIBCFFI_IntegrationMethod(this.value);
@@ -731,6 +736,7 @@ enum BCLIBCFFI_IntegrationMethod {
     2 => BCLIBCFFI_INTEGRATION_VELOCITY_VERLET,
     3 => BCLIBCFFI_INTEGRATION_CASH_KARP,
     4 => BCLIBCFFI_INTEGRATION_DORMAND_PRINCE,
+    5 => BCLIBCFFI_INTEGRATION_TSITOURAS,
     _ => throw ArgumentError(
       'Unknown value for BCLIBCFFI_IntegrationMethod: $value',
     ),

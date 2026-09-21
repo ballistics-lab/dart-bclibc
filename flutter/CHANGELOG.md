@@ -10,6 +10,17 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Changed
+
+- Pin `bclibc` to `v2.0.0-beta.8` and rebuild the web WASM assets with the
+  adaptive Tsitouras 5(4) integration method.
+
+### Added
+
+- `BcIntegrationMethod.tsitouras` is available in `AsyncCalculator` on both
+  native and WASM engines.
+- WASM tests covering the Cash-Karp, Dormand-Prince and Tsitouras integrators.
+
 ## [1.0.0-beta.1] - 2026-09-17
 
 ### Changed

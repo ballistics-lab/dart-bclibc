@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 set(PROJECT_NAME "bclibc_flutter")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
-set(BCLIBC_VERSION "90164ea4119f3381be21014d667e7f32686c7f0f")
+set(BCLIBC_VERSION "6af95d21a11f87c86d82581eea57ed52169f5c94")
 
 # src/ is a direct child of the package root — one level up lands on it.
 # Android Gradle resolves this path directly (no symlink traversal needed).

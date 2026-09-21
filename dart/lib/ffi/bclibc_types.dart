@@ -13,8 +13,9 @@ enum BcIntegrationMethod {
   rk4(0),
   euler(1),
   velocityVerlet(2),
-  cashKarp(3),
-  dopri(4);
+  rkck(3),
+  dopri(4),
+  tsitouras(5);
 
   final int value;
   const BcIntegrationMethod(this.value);
@@ -23,8 +24,9 @@ enum BcIntegrationMethod {
     0 => rk4,
     1 => euler,
     2 => velocityVerlet,
-    3 => cashKarp,
+    3 => rkck,
     4 => dopri,
+    5 => tsitouras,
     _ => throw ArgumentError('Unknown value for BcIntegrationMethod: $value'),
   };
 }
