@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-09-22
+
+### Changed
+
+- Pin `bclibc` to `v2.0.0-rc.1` — replaces the embedded RK45 methods'
+  thread-local tolerance/stats API (shared by every engine on a thread using
+  the same method) with stateful `BCLIBC_CashKarpIntegrator`/
+  `BCLIBC_DormandPrinceIntegrator`/`BCLIBC_TsitourasIntegrator` classes.
+  Internal to bclibc; no change to the Dart FFI surface, which only ever
+  calls the plain `BCLIBCFFI_integrate*` functions, unaffected by this.
+
 ## [1.0.0-beta.2] - 2026-09-21
 
 
@@ -269,7 +280,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.1...HEAD
+[1.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...v1.0.0-rc.1
 [1.0.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0-beta.1
 [0.2.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.2...v0.2.3
