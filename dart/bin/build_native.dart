@@ -100,7 +100,9 @@ Future<void> main(List<String> args) async {
         ),
       );
 
-  final targetDir = Directory(p.join(packageRoot.path, 'lib', 'native', platform));
+  final targetDir = Directory(
+    p.join(packageRoot.path, 'lib', 'native', platform),
+  );
   if (!targetDir.existsSync()) targetDir.createSync(recursive: true);
   final targetLib = File(p.join(targetDir.path, libName));
   builtLib.copySync(targetLib.path);
