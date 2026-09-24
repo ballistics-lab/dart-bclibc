@@ -10,6 +10,9 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.2`
+
 ## [1.0.0-rc.1] - 2026-09-22
 
 ### Changed

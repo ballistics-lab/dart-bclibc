@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.2`
+
 ## [1.0.0-rc.1] - 2026-09-22
 
 ### Changed
