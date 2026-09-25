@@ -203,9 +203,10 @@ jobs:
       - name: Stage wasm test fixture
         run: |
           mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
-          cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
+          cp assets/wasm/bclibc_ffi.wasm \
             test/web/assets/packages/bclibc_flutter/assets/wasm/
 
+      # The module uses WebAssembly's final exception encoding (try_table): Chrome 137+ (stable is well past it).
       - name: Run web tests
         run: dart test -p chrome test/web/
 

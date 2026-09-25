@@ -49,3 +49,6 @@ test/web/assets/
 
 # Scratch/experiment dirs (e.g. tmp/testd/ used to repro issues by hand).
 /tmp/
+
+# copied here by hand to run test/web (see the header of test/web/bclibc_ffi_web_test.dart)
+flutter/test/web/assets/

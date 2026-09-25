@@ -12,6 +12,9 @@ packages are released together under the same tag/version.
 
 ## [1.0.0-rc.4] - 2026-09-29
 
+### Changed
+- **BREAKING (web)**: the web binding loads one bare WebAssembly module, `assets/wasm/bclibc_ffi.wasm`, built by bclibc's `make wasm` (wasi-sdk, C++ exceptions, no Emscripten, imports nothing), instead of the Emscripten `bclibc_ffi.js` + `.wasm` pair. `assets/wasm/bclibc_ffi.js` is gone from the package, and `BcLibCWeb.open({scriptUrl, globalName})` is now `BcLibCWeb.open({wasmUrl})`. The module is about 1.6 MB and needs a browser with WebAssembly's final exception encoding (Chrome 137+, Firefox 131+, Safari 18.4+). `make build-wasm` takes `WASI_SDK_PATH=`.
+
 ### Chores
 - Pin `bclibc` to `v2.0.0-rc.3`
 
