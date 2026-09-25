@@ -19,7 +19,7 @@ packages are released together under the same tag/version.
   (Chrome 137+, Firefox 131+, Safari 18.4+). `make build-wasm` takes `WASI_SDK_PATH=`.
 
 ### Chores
-- Pin `bclibc` to `v2.0.0-rc.2-14-gb8bf4ec` (the `wasm-bare` branch, until `v2.0.0-rc.3` is tagged)
+- Pin `bclibc` to `v2.0.0-rc.3`
 
 ## [1.0.0-rc.2] - 2026-09-24
 
