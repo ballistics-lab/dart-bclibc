@@ -5,7 +5,7 @@
 #   1. dart/bclibc and flutter/bclibc submodule gitlinks point at the same commit
 #   2. BCLIBC_VERSION in flutter/{src,linux,windows}/CMakeLists.txt == that commit
 #   3. flutter/assets/wasm/bclibc_ffi.wasm was built from that commit (its
-#      embedded `git describe` version string, see bclibc/build_wasm.sh)
+#      embedded `git describe` version string, see `make build-wasm`)
 #   4. the latest "Pin `bclibc` to `vX.Y.Z`" line in dart/ and flutter/
 #      CHANGELOG.md names a tag that resolves to that commit
 #
@@ -80,8 +80,9 @@ resolve_tag() {
 # stripped) found in $1 refers to $REF.
 check_described_version() {
     local where="$1" ver="$2" tag_sha
-    if [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-g([0-9a-f]+)$ ]]; then
-        [[ "$REF" == "${BASH_REMATCH[1]}"* ]] ||
+    # `git describe` past a tag: X.Y.Z-N-gSHA, or X.Y.Z-rc.N-N-gSHA past a pre-release tag.
+    if [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)*-[0-9]+-g([0-9a-f]+)$ ]]; then
+        [[ "$REF" == "${BASH_REMATCH[2]}"* ]] ||
             fail "$where: built from bclibc $ver, submodules are at $REF"
         return
     fi
@@ -94,13 +95,15 @@ check_described_version() {
 }
 
 # ── 3. wasm asset ─────────────────────────────────────────────────────────────
+# A toolchain leaves its own version in the module ("clang version 23.1.0-wasi-sdk", and "clang_23.1.0-wasi-sdk" in the
+# producers section): not ours.
 mapfile -t wasm_versions < <(staged "$WASM" |
-    LC_ALL=C grep -aoE '(^|[^0-9.])[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?' |
-    sed -E 's/^[^0-9]//' | sort -u)
+    LC_ALL=C grep -aoE '(clang( version |_)|(^|[^0-9.]))[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)*' |
+    grep -av '^clang' | sed -E 's/^[^0-9]//' | sort -u)
 if [[ ${#wasm_versions[@]} -ne 1 ]]; then
     fail "$WASM: expected exactly one embedded version string, found ${#wasm_versions[@]}: ${wasm_versions[*]:-none}"
 else
-    check_described_version "$WASM (rebuild: flutter/bclibc/build_wasm.sh)" "${wasm_versions[0]}"
+    check_described_version "$WASM (rebuild: make build-wasm)" "${wasm_versions[0]}"
 fi
 
 # ── 4. CHANGELOGs ─────────────────────────────────────────────────────────────
