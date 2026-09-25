@@ -2,16 +2,16 @@
 //
 // Uses the package's own checked-in wasm asset (assets/wasm/), copied into
 // this directory mirroring the assets/packages/bclibc/... path Flutter
-// web serves it at, so BcLibCWeb.open()'s default scriptUrl resolves the
+// web serves it at, so BcLibCWeb.open()'s default wasmUrl resolves the
 // same way it would in a real Flutter web app:
-//   mkdir -p test/web/assets/packages/bclibc/assets/wasm
-//   cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
-//     test/web/assets/packages/bclibc/assets/wasm/
+//   mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
+//   cp assets/wasm/bclibc_ffi.wasm test/web/assets/packages/bclibc_flutter/assets/wasm/
 //
-// To rebuild assets/wasm/ itself from source: bclibc/build_wasm.sh, then
-// cp bclibc/build/web/bclibc_ffi.{js,wasm} assets/wasm/
+// To rebuild assets/wasm/ itself from source (one bare module, wasi-sdk, no
+// Emscripten): make build-wasm WASI_SDK_PATH=/path/to/wasi-sdk
 //
-// Then run with:
+// Then run with (a browser that has WebAssembly's final exception encoding:
+// Chrome 137+, Firefox 131+):
 //   dart test -p chrome test/web/bclibc_ffi_web_test.dart
 
 @TestOn('browser')
@@ -114,6 +114,17 @@ void main() {
     final angle = bc.findZeroAngleShot(shot, 1000.0);
     expect(angle, greaterThan(0.0));
     expect(angle, lessThan(0.1));
+  });
+
+  test('a solve that fails is a BcException, and the module keeps working', () {
+    // Out of range: the module throws a C++ exception inside wasm, the flat C ABI catches it and returns an error
+    // code, as the native library does (no trap, no exception across the WebAssembly boundary).
+    expect(
+      () => bc.findZeroAngleShot(_makeShot(), 60000.0),
+      throwsA(isA<BcException>()),
+    );
+    // the instance is still good
+    expect(bc.findZeroAngleShot(_makeShot(), 1000.0), greaterThan(0.0));
   });
 
   test('findApexShot returns apex above muzzle height', () {
