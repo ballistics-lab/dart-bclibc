@@ -10,6 +10,19 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+## [1.0.0-rc.3] - 2026-09-25
+
+### Changed
+- **BREAKING (web)**: the web binding loads one bare WebAssembly module, `assets/wasm/bclibc_ffi.wasm`, built by
+  bclibc's `make wasm` (wasi-sdk, C++ exceptions, no Emscripten, imports nothing), instead of the Emscripten
+  `bclibc_ffi.js` + `.wasm` pair. `assets/wasm/bclibc_ffi.js` is gone from the package, and
+  `BcLibCWeb.open({scriptUrl, globalName})` is now `BcLibCWeb.open({wasmUrl})`. The module is about 1.6 MB (the
+  Emscripten one was 285 KB + 72 KB of glue) and needs a browser with WebAssembly's final exception encoding
+  (Chrome 137+, Firefox 131+, Safari 18.4+). `make build-wasm` takes `WASI_SDK_PATH=`.
+
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.3`
+
 ## [1.0.0-rc.2] - 2026-09-24
 
 ### Chores
@@ -110,7 +123,8 @@ packages are released together under the same tag/version.
   Android/iOS/Linux/macOS/Windows and Web/WebAssembly support, plus
   `AsyncCalculator`. Re-exports everything from `bclibc`.
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.3...HEAD
+[1.0.0-rc.3]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...v1.0.0-rc.3
 [1.0.0-rc.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...v1.0.0-rc.1
 [1.0.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.1...v1.0.0-beta.2

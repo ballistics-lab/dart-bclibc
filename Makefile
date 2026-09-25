@@ -35,14 +35,16 @@ format:
 	cd dart && dart format bin/ lib/
 	cd flutter && dart format lib/
 
-# Rebuild Flutter Web's checked-in bclibc_ffi artifacts from the pinned
-# flutter/bclibc submodule. Run `make verify-bclibc` afterward (or use the
-# target below) to ensure the embedded version matches both gitlinks.
+# Rebuild Flutter Web's checked-in bclibc module from the pinned flutter/bclibc
+# submodule: one bare wasm (no Emscripten, no JS glue) built with wasi-sdk,
+# `make build-wasm WASI_SDK_PATH=/path/to/wasi-sdk-34.0`. Run
+# `make verify-bclibc` afterward (this target does) to ensure the embedded
+# version matches both gitlinks.
 build-wasm:
+	@test -n "$(WASI_SDK_PATH)" || { echo "set WASI_SDK_PATH=/path/to/wasi-sdk (https://github.com/WebAssembly/wasi-sdk/releases)"; exit 1; }
 	git submodule update --init flutter/bclibc
-	cd flutter/bclibc && ./build_wasm.sh
-	cp flutter/bclibc/build/web/bclibc_ffi.js flutter/assets/wasm/
-	cp flutter/bclibc/build/web/bclibc_ffi.wasm flutter/assets/wasm/
+	$(MAKE) -C flutter/bclibc wasm WASI_SDK_PATH=$(WASI_SDK_PATH)
+	cp flutter/bclibc/build/wasm/bclibc_wasm.wasm flutter/assets/wasm/bclibc_ffi.wasm
 	$(MAKE) verify-bclibc
 
 clean:

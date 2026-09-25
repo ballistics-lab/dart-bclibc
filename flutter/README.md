@@ -38,8 +38,8 @@ Dart side: `BCLIBCFFI_get_layout()` computes them via `offsetof()`/`sizeof()`
 in whichever compiler built the wasm module, so the binding can't silently
 drift from the C struct layout if it changes.
 
-The compiled artifact (`assets/wasm/bclibc_ffi.js` + `.wasm`) ships with the
-package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
+The compiled artifact (`assets/wasm/bclibc_ffi.wasm`: one bare module, no JS glue, no Emscripten,
+it imports nothing) ships with the package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
 up automatically, no extra setup needed in the consuming app.
 
 ```dart
@@ -51,12 +51,15 @@ final calc = AsyncCalculator();
 final elev = await calc.barrelElevationForTarget(shot, Distance.meter(500));
 ```
 
+It is built with C++ exceptions in WebAssembly's final encoding, so the browser needs it
+(Chrome 137+, Firefox 131+, Safari 18.4+); `BCLIBCFFI_*` return the same error codes as the
+native library.
+
 To rebuild the wasm artifact from source (only needed if you're modifying
-`bclibc` itself):
+`bclibc` itself; needs [wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases)):
 
 ```bash
-bclibc/build_wasm.sh   # self-installs a pinned Emscripten SDK on first run
-cp bclibc/build/web/bclibc_ffi.{js,wasm} assets/wasm/
+make build-wasm WASI_SDK_PATH=/path/to/wasi-sdk-34.0   # from the repo root
 ```
 
 ## Native platform builds
