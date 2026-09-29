@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc.4] - 2026-09-29
+
+
 ### Changed
 - update `pub` deps
 
@@ -288,7 +291,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...HEAD
+[1.0.0-rc.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...v1.0.0-rc.4
 [1.0.0-rc.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...v1.0.0-rc.1
 [1.0.0-beta.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.1...v1.0.0-beta.2
