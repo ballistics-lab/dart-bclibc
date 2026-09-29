@@ -10,6 +10,9 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Changed
+- update `pub` deps
+
 ## [1.0.0-rc.2] - 2026-09-24
 
 ### Chores
