@@ -46,5 +46,4 @@ flutter:
         pluginClass: BclibcWebPlugin
         fileName: src/bclibc_web_plugin.dart
   assets:
-    - assets/wasm/bclibc_ffi.js
     - assets/wasm/bclibc_ffi.wasm
