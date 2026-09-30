@@ -7,11 +7,10 @@
 //   mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
 //   cp assets/wasm/bclibc_ffi.wasm test/web/assets/packages/bclibc_flutter/assets/wasm/
 //
-// To rebuild assets/wasm/ itself from source (one bare module, wasi-sdk, no
-// Emscripten): make build-wasm WASI_SDK_PATH=/path/to/wasi-sdk
+// To rebuild assets/wasm/ itself from source (one bare module, zig, no
+// Emscripten): uv run --with ziglang make build-wasm
 //
-// Then run with (a browser that has WebAssembly's final exception encoding:
-// Chrome 137+, Firefox 131+):
+// Then run with (any browser with WebAssembly):
 //   dart test -p chrome test/web/bclibc_ffi_web_test.dart
 
 @TestOn('browser')

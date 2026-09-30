@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The native library is built from bclibc's exception-free core (every fallible call returns a result that the flat C
+  ABI maps to a `BCLIBCFFI_*` error code): same Dart API, error codes and messages.
+- Regenerated `lib/ffi/bclibc_bindings.g.dart` (`make ffigen`): it now also binds the interpolation functions of the
+  C ABI, `BCLIBCFFI_hermite`, `BCLIBCFFI_interpolate_2pt`/`_3pt` and `BCLIBCFFI_interpolate_trajectory_data`.
+
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.3-21-gbadce8f` (an unreleased revision, [ballistics-lab/bclibc#40](https://github.com/ballistics-lab/bclibc/pull/40))
+
 ## [1.0.0-rc.4] - 2026-09-29
 
 ### Chores

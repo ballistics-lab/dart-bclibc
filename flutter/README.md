@@ -29,8 +29,7 @@ because it needs a real web (wasm) implementation on Flutter Web.
 
 ## Web / WebAssembly
 
-`bclibc`'s C ABI compiles to WebAssembly via `bclibc/build_wasm.sh`
-(Emscripten), and is consumed on web through `BcLibCWeb`
+`bclibc`'s C ABI compiles to WebAssembly (`make wasm-zig` in `bclibc/`), and is consumed on web through `BcLibCWeb`
 (`lib/ffi/bclibc_ffi_web.dart`) using `dart:js_interop` directly against the
 same flat `BCLIBCFFI_*` exports the native binding uses — no Embind, no
 third-party FFI-on-web shim. Struct field offsets are never hardcoded on the
@@ -51,16 +50,18 @@ final calc = AsyncCalculator();
 final elev = await calc.barrelElevationForTarget(shot, Distance.meter(500));
 ```
 
-It is built with C++ exceptions in WebAssembly's final encoding, so the browser needs it
-(Chrome 137+, Firefox 131+, Safari 18.4+); `BCLIBCFFI_*` return the same error codes as the
-native library.
+bclibc never throws, so the module is built without C++ exceptions and runs on any browser with
+WebAssembly; `BCLIBCFFI_*` return the same error codes as the native library.
 
 To rebuild the wasm artifact from source (only needed if you're modifying
-`bclibc` itself; needs [wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases)):
+`bclibc` itself; needs [uv](https://docs.astral.sh/uv/), which supplies zig):
 
 ```bash
-make build-wasm WASI_SDK_PATH=/path/to/wasi-sdk-34.0   # from the repo root
+uv run --with ziglang make build-wasm   # from the repo root
 ```
+
+[wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases) also builds it (~1.6 MB):
+`make build-wasm WASM_TOOLCHAIN=wasi-sdk WASI_SDK_PATH=/path/to/wasi-sdk-34.0`.
 
 ## Native platform builds
 
