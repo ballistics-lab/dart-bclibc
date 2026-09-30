@@ -60,7 +60,7 @@ To rebuild the wasm artifact from source (only needed if you're modifying
 uv run --with ziglang make build-wasm   # from the repo root
 ```
 
-[wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases) also builds it (~1.6 MB):
+[wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases) also builds it (~1 MB):
 `make build-wasm WASM_TOOLCHAIN=wasi-sdk WASI_SDK_PATH=/path/to/wasi-sdk-34.0`.
 
 ## Native platform builds
