@@ -23,6 +23,8 @@ packages are released together under the same tag/version.
   result that the flat C ABI maps to a `BCLIBCFFI_ERR_*` code): same codes and messages as before.
 
 ### Fixed
+- `pubspec.yaml` no longer lists the removed `assets/wasm/bclibc_ffi.js` (`flutter analyze`, `flutter test` and
+  `dart pub publish --dry-run` failed on the missing asset).
 - Web: `BcLibCWeb` could throw `Cannot perform DataView.prototype.setFloat64 on a detached ArrayBuffer`: it took a view
   of the module's memory before allocating the shot, and `malloc` may grow (and so detach) that memory. The small
   module starts with less memory than the old one, so it grows sooner. The view is now taken after the last
