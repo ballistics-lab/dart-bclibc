@@ -10,10 +10,28 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
-## [1.0.0-rc.4] - 2026-09-29
-
 ### Changed
-- **BREAKING (web)**: the web binding loads one bare WebAssembly module, `assets/wasm/bclibc_ffi.wasm`, built by bclibc's `make wasm` (wasi-sdk, C++ exceptions, no Emscripten, imports nothing), instead of the Emscripten `bclibc_ffi.js` + `.wasm` pair. `assets/wasm/bclibc_ffi.js` is gone from the package, and `BcLibCWeb.open({scriptUrl, globalName})` is now `BcLibCWeb.open({wasmUrl})`. The module is about 1.6 MB and needs a browser with WebAssembly's final exception encoding (Chrome 137+, Firefox 131+, Safari 18.4+). `make build-wasm` takes `WASI_SDK_PATH=`.
+- **BREAKING (web)**: the web binding loads one bare WebAssembly module, `assets/wasm/bclibc_ffi.wasm`, built by bclibc's
+  `make wasm-zig` (no Emscripten, imports nothing), instead of the Emscripten `bclibc_ffi.js` + `.wasm` pair.
+  `assets/wasm/bclibc_ffi.js` is gone from the package, and `BcLibCWeb.open({scriptUrl, globalName})` is now
+  `BcLibCWeb.open({wasmUrl})`. The module is about 84 KB (was 131 KB with the JS glue) and, because bclibc never
+  throws, is built without C++ exceptions, so it runs on any browser with WebAssembly: no WebAssembly exception
+  handling is needed.
+- `make build-wasm` builds with zig (`uv run --with ziglang make build-wasm`); `WASM_TOOLCHAIN=wasi-sdk
+  WASI_SDK_PATH=...` builds the same module with wasi-sdk (~1.6 MB).
+- The native library and the web module are built from bclibc's exception-free core (every fallible call returns a
+  result that the flat C ABI maps to a `BCLIBCFFI_ERR_*` code): same codes and messages as before.
+
+### Fixed
+- Web: `BcLibCWeb` could throw `Cannot perform DataView.prototype.setFloat64 on a detached ArrayBuffer`: it took a view
+  of the module's memory before allocating the shot, and `malloc` may grow (and so detach) that memory. The small
+  module starts with less memory than the old one, so it grows sooner. The view is now taken after the last
+  allocation.
+
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.3-21-gbadce8f` (an unreleased revision, [ballistics-lab/bclibc#40](https://github.com/ballistics-lab/bclibc/pull/40))
+
+## [1.0.0-rc.4] - 2026-09-29
 
 ### Chores
 - Pin `bclibc` to `v2.0.0-rc.3`

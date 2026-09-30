@@ -1,5 +1,5 @@
 // Web binding for the bclibc C ABI (bclibc_ffi.h / BCLIBCFFI_*), compiled to
-// one bare wasm module (bclibc's `make wasm`, wasi-sdk, no Emscripten) and loaded through dart:js_interop.
+// one bare wasm module (bclibc's `make wasm-zig`, no Emscripten) and loaded through dart:js_interop.
 //
 // Talks directly to the same flat BCLIBCFFI_* exports the native dart:ffi
 // binding (bclibc_ffi.dart) uses — no Embind, no wasm_ffi (which doesn't
@@ -13,9 +13,8 @@
 // empty import object, `_initialize` runs once, and the exports (`malloc`, `free`,
 // `memory`, `BCLIBCFFI_*`) are called directly. Loading the module is the only async
 // part; once loaded, every call below is a plain synchronous JS call into
-// already-instantiated wasm. It is built with C++ exceptions in WebAssembly's final
-// encoding (`try_table`, exnref): a browser that has it (Chrome 137+, Firefox 131+,
-// Safari 18.4+) runs it, and BCLIBCFFI_* return the same error codes as the native library.
+// already-instantiated wasm. bclibc never throws, so it is built without C++ exceptions and
+// runs on any browser with WebAssembly; BCLIBCFFI_* return the same error codes as the native library.
 
 import 'dart:async';
 import 'dart:convert';
@@ -299,45 +298,46 @@ void _writeShot(
   bd.setInt32(ptr + l.shotMethod, shot.method.value, Endian.little);
 }
 
-int _fillShot(_WasmArena arena, ByteData bd, _Layout l, BcShot shot) {
+int _fillShot(_WasmArena arena, _Layout l, BcShot shot) {
   final shotPtr = arena.malloc(l.shotSize);
+  final dragCount = shot.dragTable.length;
+  final machPtr = dragCount > 0 ? arena.malloc(dragCount * 8) : 0;
+  final cdPtr = dragCount > 0 ? arena.malloc(dragCount * 8) : 0;
+  final windsPtr = shot.winds.isNotEmpty
+      ? arena.malloc(shot.winds.length * l.windSize)
+      : 0;
 
-  int machPtr = 0, cdPtr = 0;
-  if (shot.dragTable.isNotEmpty) {
-    machPtr = arena.malloc(shot.dragTable.length * 8);
-    cdPtr = arena.malloc(shot.dragTable.length * 8);
-    for (var i = 0; i < shot.dragTable.length; i++) {
-      bd.setFloat64(machPtr + i * 8, shot.dragTable[i].mach, Endian.little);
-      bd.setFloat64(cdPtr + i * 8, shot.dragTable[i].cd, Endian.little);
-    }
+  // malloc may grow the module's memory, which detaches every earlier view of it:
+  // take the view only after the last allocation.
+  final bd = _heap(arena.module);
+
+  for (var i = 0; i < dragCount; i++) {
+    bd.setFloat64(machPtr + i * 8, shot.dragTable[i].mach, Endian.little);
+    bd.setFloat64(cdPtr + i * 8, shot.dragTable[i].cd, Endian.little);
   }
 
-  int windsPtr = 0;
-  if (shot.winds.isNotEmpty) {
-    windsPtr = arena.malloc(shot.winds.length * l.windSize);
-    for (var i = 0; i < shot.winds.length; i++) {
-      final w = windsPtr + i * l.windSize;
-      bd.setFloat64(
-        w + l.windVelocityFps,
-        shot.winds[i].velocityFps,
-        Endian.little,
-      );
-      bd.setFloat64(
-        w + l.windDirectionFromRad,
-        shot.winds[i].directionFromRad,
-        Endian.little,
-      );
-      bd.setFloat64(
-        w + l.windUntilDistanceFt,
-        shot.winds[i].untilDistanceFt,
-        Endian.little,
-      );
-      bd.setFloat64(
-        w + l.windMaxDistanceFt,
-        shot.winds[i].maxDistanceFt,
-        Endian.little,
-      );
-    }
+  for (var i = 0; i < shot.winds.length; i++) {
+    final w = windsPtr + i * l.windSize;
+    bd.setFloat64(
+      w + l.windVelocityFps,
+      shot.winds[i].velocityFps,
+      Endian.little,
+    );
+    bd.setFloat64(
+      w + l.windDirectionFromRad,
+      shot.winds[i].directionFromRad,
+      Endian.little,
+    );
+    bd.setFloat64(
+      w + l.windUntilDistanceFt,
+      shot.winds[i].untilDistanceFt,
+      Endian.little,
+    );
+    bd.setFloat64(
+      w + l.windMaxDistanceFt,
+      shot.winds[i].maxDistanceFt,
+      Endian.little,
+    );
   }
 
   _writeShot(bd, shotPtr, l, shot, machPtr, cdPtr, windsPtr);
@@ -489,8 +489,7 @@ class BcLibCWeb implements BcEngine {
 
   @override
   BcTrajectoryData findApexShot(BcShot shot) => _using(_module, (arena) {
-    final bd = _heap(_module);
-    final shotPtr = _fillShot(arena, bd, _layout, shot);
+    final shotPtr = _fillShot(arena, _layout, shot);
     final outPtr = arena.malloc(_layout.trajSize);
     final errPtr = arena.malloc(_layout.errorSize);
     final st = _call(_module, 'BCLIBCFFI_find_apex_shot', [
@@ -508,8 +507,7 @@ class BcLibCWeb implements BcEngine {
     double lowAngleDeg = 0.0,
     double highAngleDeg = 45.0,
   }) => _using(_module, (arena) {
-    final bd = _heap(_module);
-    final shotPtr = _fillShot(arena, bd, _layout, shot);
+    final shotPtr = _fillShot(arena, _layout, shot);
     final outPtr = arena.malloc(_layout.maxRangeSize);
     final errPtr = arena.malloc(_layout.errorSize);
 
@@ -537,8 +535,7 @@ class BcLibCWeb implements BcEngine {
   @override
   double findZeroAngleShot(BcShot shot, double distanceFt) =>
       _using(_module, (arena) {
-        final bd = _heap(_module);
-        final shotPtr = _fillShot(arena, bd, _layout, shot);
+        final shotPtr = _fillShot(arena, _layout, shot);
         final outAnglePtr = arena.malloc(8);
         final errPtr = arena.malloc(_layout.errorSize);
         final st = _module.callMethodVarArgs<JSNumber>(
@@ -552,8 +549,7 @@ class BcLibCWeb implements BcEngine {
   @override
   BcZeroPointResult findZeroPointShot(BcShot shot, double distanceFt) =>
       _using(_module, (arena) {
-        final bd = _heap(_module);
-        final shotPtr = _fillShot(arena, bd, _layout, shot);
+        final shotPtr = _fillShot(arena, _layout, shot);
         final outPtr = arena.malloc(_layout.zeroPointSize);
         final errPtr = arena.malloc(_layout.errorSize);
         final st = _module.callMethodVarArgs<JSNumber>(
@@ -571,10 +567,16 @@ class BcLibCWeb implements BcEngine {
   @override
   BcHitResult integrateShot(BcShot shot, BcTrajectoryRequest request) =>
       _using(_module, (arena) {
-        final bd = _heap(_module);
-        final shotPtr = _fillShot(arena, bd, _layout, shot);
+        final shotPtr = _fillShot(arena, _layout, shot);
 
         final reqPtr = arena.malloc(_layout.reqSize);
+        final outRecordsPtrPtr = arena.malloc(4);
+        final outCountPtr = arena.malloc(4);
+        final outReasonPtr = arena.malloc(4);
+        final errPtr = arena.malloc(_layout.errorSize);
+
+        // After the last allocation: malloc may have grown (and detached) the memory.
+        final bd = _heap(_module);
         bd.setFloat64(
           reqPtr + _layout.reqRangeLimitFt,
           request.rangeLimitFt,
@@ -595,11 +597,6 @@ class BcLibCWeb implements BcEngine {
           request.filterFlags,
           Endian.little,
         );
-
-        final outRecordsPtrPtr = arena.malloc(4);
-        final outCountPtr = arena.malloc(4);
-        final outReasonPtr = arena.malloc(4);
-        final errPtr = arena.malloc(_layout.errorSize);
 
         final st = _call(_module, 'BCLIBCFFI_integrate_shot', [
           shotPtr,
@@ -638,8 +635,7 @@ class BcLibCWeb implements BcEngine {
     BcBaseTrajInterpKey key,
     double targetValue,
   ) => _using(_module, (arena) {
-    final bd = _heap(_module);
-    final shotPtr = _fillShot(arena, bd, _layout, shot);
+    final shotPtr = _fillShot(arena, _layout, shot);
     final outPtr = arena.malloc(_layout.interceptionSize);
     final errPtr = arena.malloc(_layout.errorSize);
 
