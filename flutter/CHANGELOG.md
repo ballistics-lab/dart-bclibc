@@ -31,7 +31,7 @@ packages are released together under the same tag/version.
   allocation.
 
 ### Chores
-- Pin `bclibc` to `v2.0.0-rc.3-22-gcae1c71` (an unreleased revision, [ballistics-lab/bclibc#40](https://github.com/ballistics-lab/bclibc/pull/40))
+- Pin `bclibc` to `v2.0.0-rc.4`
 
 ## [1.0.0-rc.4] - 2026-09-29
 
