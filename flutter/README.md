@@ -29,8 +29,7 @@ because it needs a real web (wasm) implementation on Flutter Web.
 
 ## Web / WebAssembly
 
-`bclibc`'s C ABI compiles to WebAssembly via `bclibc/build_wasm.sh`
-(Emscripten), and is consumed on web through `BcLibCWeb`
+`bclibc`'s C ABI compiles to WebAssembly (`make wasm-zig` in `bclibc/`), and is consumed on web through `BcLibCWeb`
 (`lib/ffi/bclibc_ffi_web.dart`) using `dart:js_interop` directly against the
 same flat `BCLIBCFFI_*` exports the native binding uses — no Embind, no
 third-party FFI-on-web shim. Struct field offsets are never hardcoded on the
@@ -38,8 +37,8 @@ Dart side: `BCLIBCFFI_get_layout()` computes them via `offsetof()`/`sizeof()`
 in whichever compiler built the wasm module, so the binding can't silently
 drift from the C struct layout if it changes.
 
-The compiled artifact (`assets/wasm/bclibc_ffi.js` + `.wasm`) ships with the
-package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
+The compiled artifact (`assets/wasm/bclibc_ffi.wasm`: one bare module, no JS glue, no Emscripten,
+it imports nothing) ships with the package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
 up automatically, no extra setup needed in the consuming app.
 
 ```dart
@@ -51,13 +50,18 @@ final calc = AsyncCalculator();
 final elev = await calc.barrelElevationForTarget(shot, Distance.meter(500));
 ```
 
+bclibc never throws, so the module is built without C++ exceptions and runs on any browser with
+WebAssembly; `BCLIBCFFI_*` return the same error codes as the native library.
+
 To rebuild the wasm artifact from source (only needed if you're modifying
-`bclibc` itself):
+`bclibc` itself; needs [uv](https://docs.astral.sh/uv/), which supplies zig):
 
 ```bash
-bclibc/build_wasm.sh   # self-installs a pinned Emscripten SDK on first run
-cp bclibc/build/web/bclibc_ffi.{js,wasm} assets/wasm/
+uv run --with ziglang make build-wasm   # from the repo root
 ```
+
+[wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases) also builds it (~1 MB):
+`make build-wasm WASM_TOOLCHAIN=wasi-sdk WASI_SDK_PATH=/path/to/wasi-sdk-34.0`.
 
 ## Native platform builds
 

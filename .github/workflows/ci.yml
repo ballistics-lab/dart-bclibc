@@ -203,7 +203,7 @@ jobs:
       - name: Stage wasm test fixture
         run: |
           mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
-          cp assets/wasm/bclibc_ffi.js assets/wasm/bclibc_ffi.wasm \
+          cp assets/wasm/bclibc_ffi.wasm \
             test/web/assets/packages/bclibc_flutter/assets/wasm/
 
       - name: Run web tests

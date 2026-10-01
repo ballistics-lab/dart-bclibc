@@ -10,6 +10,32 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+## [1.0.0-rc.5] - 2026-10-01
+
+
+### Changed
+- **BREAKING (web)**: the web binding loads one bare WebAssembly module, `assets/wasm/bclibc_ffi.wasm`, built by bclibc's
+  `make wasm-zig` (no Emscripten, imports nothing), instead of the Emscripten `bclibc_ffi.js` + `.wasm` pair.
+  `assets/wasm/bclibc_ffi.js` is gone from the package, and `BcLibCWeb.open({scriptUrl, globalName})` is now
+  `BcLibCWeb.open({wasmUrl})`. The module is about 84 KB (was 131 KB with the JS glue) and, because bclibc never
+  throws, is built without C++ exceptions, so it runs on any browser with WebAssembly: no WebAssembly exception
+  handling is needed.
+- `make build-wasm` builds with zig (`uv run --with ziglang make build-wasm`); `WASM_TOOLCHAIN=wasi-sdk
+  WASI_SDK_PATH=...` builds the same module with wasi-sdk (~1 MB).
+- The native library and the web module are built from bclibc's exception-free core (every fallible call returns a
+  result that the flat C ABI maps to a `BCLIBCFFI_ERR_*` code): same codes and messages as before.
+
+### Fixed
+- `pubspec.yaml` no longer lists the removed `assets/wasm/bclibc_ffi.js` (`flutter analyze`, `flutter test` and
+  `dart pub publish --dry-run` failed on the missing asset).
+- Web: `BcLibCWeb` could throw `Cannot perform DataView.prototype.setFloat64 on a detached ArrayBuffer`: it took a view
+  of the module's memory before allocating the shot, and `malloc` may grow (and so detach) that memory. The small
+  module starts with less memory than the old one, so it grows sooner. The view is now taken after the last
+  allocation.
+
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.4`
+
 ## [1.0.0-rc.4] - 2026-09-29
 
 ### Chores
@@ -118,7 +144,8 @@ packages are released together under the same tag/version.
   Android/iOS/Linux/macOS/Windows and Web/WebAssembly support, plus
   `AsyncCalculator`. Re-exports everything from `bclibc`.
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.5...HEAD
+[1.0.0-rc.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [1.0.0-rc.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...v1.0.0-rc.4
 [1.0.0-rc.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...v1.0.0-rc.1

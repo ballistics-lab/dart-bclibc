@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc.5] - 2026-10-01
+
+
+### Changed
+- The native library is built from bclibc's exception-free core (every fallible call returns a result that the flat C
+  ABI maps to a `BCLIBCFFI_*` error code): same Dart API, error codes and messages.
+- Regenerated `lib/ffi/bclibc_bindings.g.dart` (`make ffigen`): it now also binds the interpolation functions of the
+  C ABI, `BCLIBCFFI_hermite`, `BCLIBCFFI_interpolate_2pt`/`_3pt` and `BCLIBCFFI_interpolate_trajectory_data`.
+
+### Chores
+- Pin `bclibc` to `v2.0.0-rc.4`
+
 ## [1.0.0-rc.4] - 2026-09-29
 
 ### Chores
@@ -293,7 +305,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.5...HEAD
+[1.0.0-rc.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [1.0.0-rc.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...v1.0.0-rc.4
 [1.0.0-rc.2]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-beta.2...v1.0.0-rc.1
