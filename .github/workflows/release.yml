@@ -101,6 +101,7 @@ jobs:
   create-release:
     needs: verify-release
     runs-on: ubuntu-latest
+    environment: release # requires manual approval in repo Settings → Environments
     permissions:
       contents: write
     steps:
