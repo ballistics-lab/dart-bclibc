@@ -1,33 +1,32 @@
-.PHONY: ffigen test web-test format build-wasm verify-bclibc install-hooks
+.PHONY: submodule ffigen test web-test format build-wasm verify-bclibc install-hooks
 
-# The native library needs no build step here: dart/hook/build.dart compiles
-# the bundled dart/bclibc sources whenever `dart run`/`dart test`/`flutter
+# The native library needs no build step here: hook/build.dart compiles
+# the bundled bclibc/ sources whenever `dart run`/`dart test`/`flutter
 # build` needs it. Only a local clone has to initialize the submodule first.
 submodule:
-	git submodule update --init dart/bclibc
+	git submodule update --init bclibc
 
-# Re-generate the @Native FFI bindings (dart/lib/ffi/bclibc_bindings.g.dart)
+# Re-generate the @Native FFI bindings (lib/ffi/bclibc_bindings.g.dart)
 # from the C header. Requires LLVM/Clang:
 #   Linux:   sudo apt install libclang-dev clang
 #   macOS:   brew install llvm
 #   Windows: winget install LLVM
 ffigen: submodule
-	cd dart && dart pub get && dart run ffigen --config ffigen.yaml
+	dart pub get && dart run ffigen --config ffigen.yaml
 
 # Native (dart:ffi) tests; the build hook compiles the library on the way.
 test: submodule
-	cd dart && dart pub get && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+	dart pub get && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
 
 # Web tests (dart:js_interop against the wasm module embedded in the package).
 web-test:
-	cd dart && dart pub get && dart test -p chrome test/web/
+	dart pub get && dart test -p chrome test/web/
 
 format:
-	cd dart && dart format hook/ lib/ test/
-	cd flutter && dart format lib/
+	dart format hook/ lib/ test/
 
-# Rebuild the wasm module embedded in the package (dart/lib/ffi/bclibc_wasm.g.dart)
-# from the pinned dart/bclibc submodule: one bare wasm (no Emscripten, no JS glue,
+# Rebuild the wasm module embedded in the package (lib/ffi/bclibc_wasm.g.dart)
+# from the pinned bclibc submodule: one bare wasm (no Emscripten, no JS glue,
 # no C++ exceptions -- bclibc never throws) built with zig, which comes from the
 # `ziglang` package:
 #   uv run --with ziglang make build-wasm        (or zig on PATH, or ZIG=/path/to/zig)
@@ -41,17 +40,17 @@ WASI_SDK_PATH ?=
 
 build-wasm: submodule
 ifeq ($(WASM_TOOLCHAIN),zig)
-	$(MAKE) -C dart/bclibc wasm-zig $(if $(ZIG),ZIG=$(ZIG))
-	python3 scripts/embed_wasm.py dart/bclibc/build/wasm-zig/bclibc_wasm.wasm
+	$(MAKE) -C bclibc wasm-zig $(if $(ZIG),ZIG=$(ZIG))
+	python3 scripts/embed_wasm.py bclibc/build/wasm-zig/bclibc_wasm.wasm
 else
 	@test -n "$(WASI_SDK_PATH)" || { echo "set WASI_SDK_PATH=/path/to/wasi-sdk (https://github.com/WebAssembly/wasi-sdk/releases)"; exit 1; }
-	$(MAKE) -C dart/bclibc wasm WASI_SDK_PATH=$(WASI_SDK_PATH)
-	python3 scripts/embed_wasm.py dart/bclibc/build/wasm/bclibc_wasm.wasm
+	$(MAKE) -C bclibc wasm WASI_SDK_PATH=$(WASI_SDK_PATH)
+	python3 scripts/embed_wasm.py bclibc/build/wasm/bclibc_wasm.wasm
 endif
-	git add dart/lib/ffi/bclibc_wasm.g.dart
+	git add lib/ffi/bclibc_wasm.g.dart
 	$(MAKE) verify-bclibc
 
-# Confirms the single bclibc pin -- the dart/bclibc submodule, the embedded
+# Confirms the single bclibc pin -- the bclibc submodule, the embedded
 # wasm module and the CHANGELOG -- hasn't drifted. See scripts/ci/verify-bclibc.sh.
 verify-bclibc:
 	scripts/ci/verify-bclibc.sh

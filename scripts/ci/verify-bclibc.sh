@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Verifies every place in this repo that pins a bclibc version agrees on the
-# same one (the dart/bclibc submodule is the single pin):
+# same one (the bclibc submodule is the single pin):
 #
-#   1. dart/bclibc is a submodule gitlink in the index (REF)
-#   2. the wasm module embedded in dart/lib/ffi/bclibc_wasm.g.dart was built
+#   1. bclibc is a submodule gitlink in the index (REF)
+#   2. the wasm module embedded in lib/ffi/bclibc_wasm.g.dart was built
 #      from that commit (its embedded `git describe` version string, see
 #      `make build-wasm`)
-#   3. the latest "Pin `bclibc` to `vX.Y.Z`" line in dart/CHANGELOG.md names a
+#   3. the latest "Pin `bclibc` to `vX.Y.Z`" line in CHANGELOG.md names a
 #      tag that resolves to that commit
 #
 # Reads everything from the git index, not the working tree, so as a
@@ -24,8 +24,8 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-WASM_DART=dart/lib/ffi/bclibc_wasm.g.dart
-CHANGELOGS=(dart/CHANGELOG.md)
+WASM_DART=lib/ffi/bclibc_wasm.g.dart
+CHANGELOGS=(CHANGELOG.md)
 
 errors=0
 fail() { echo "error: $*" >&2; errors=$((errors + 1)); }
@@ -38,16 +38,16 @@ gitlink() { git ls-files -s -- "$1" | awk '$1 == "160000" { print $2 }'; }
 staged() { git show ":$1"; }
 
 # ── 1. submodule ──────────────────────────────────────────────────────────────
-REF="$(gitlink dart/bclibc)"
-[[ -n "$REF" ]] || { echo "error: dart/bclibc is not a submodule in the index" >&2; exit 1; }
+REF="$(gitlink bclibc)"
+[[ -n "$REF" ]] || { echo "error: bclibc is not a submodule in the index" >&2; exit 1; }
 
 # ── tag resolution helper ─────────────────────────────────────────────────────
-BCLIBC_URL="$(git config -f .gitmodules submodule.dart/bclibc.url)"
+BCLIBC_URL="$(git config -f .gitmodules submodule.bclibc.url)"
 
 # Prints the commit sha tag $1 points at, or nothing if it can't be resolved.
 resolve_tag() {
     local tag="$1" sub sha
-    for sub in dart/bclibc; do
+    for sub in bclibc; do
         if git -C "$sub" rev-parse --git-dir >/dev/null 2>&1 &&
             sha="$(git -C "$sub" rev-parse -q --verify "refs/tags/${tag}^{commit}" 2>/dev/null)"; then
             echo "$sha"

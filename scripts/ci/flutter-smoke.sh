@@ -11,7 +11,7 @@ trap 'rm -rf "$TMP"' EXIT
 
 cd "$TMP"
 flutter create --empty --project-name smoke --platforms linux . >/dev/null
-flutter pub add "bclibc:{\"path\":\"$ROOT/dart\"}" >/dev/null
+flutter pub add "bclibc:{\"path\":\"$ROOT\"}" >/dev/null
 
 mkdir -p test
 cat > test/smoke_test.dart <<'DART'

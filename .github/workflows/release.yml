@@ -1,9 +1,8 @@
 name: Release
 
 # Triggered by pushing a tag like v1.2.3 -- that tag must already be sitting
-# on a commit where dart/pubspec.yaml, flutter/pubspec.yaml (both its own
-# `version:` and its `bclibc: ^...` dependency constraint), and
-# dart/CHANGELOG.md are all fully consistent with it. verify-release below
+# on a commit where pubspec.yaml's `version:` and CHANGELOG.md are fully
+# consistent with it. verify-release below
 # only checks that; it never bumps/commits/pushes anything on your behalf,
 # unlike this workflow's previous version (which used to bump pubspec.yaml
 # and push a commit to main *after* the tag already existed -- a real
@@ -27,24 +26,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Reuses ci.yml's own jobs (analyze/test/web/Flutter-consumer/publish-dry-run
-  # for both packages, plus the bclibc pin-parity check) via workflow_call.
-  run-tests:
-    uses: ./.github/workflows/ci.yml
-
   # ── verify the tag's commit already has consistent versions/changelog —
   # no writes, no commits. Fails the whole release instead of auto-fixing
   # anything; see scripts/ci/prepare_release.py for the local tool that gets
   # a commit into this state before you tag it ─────────────────────────────
   verify-release:
-    needs: run-tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # to look up the CI run of the tagged commit
     outputs:
       version: ${{ steps.meta.outputs.version }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
     steps:
       # Checking out the tag itself (not main) is the point: this is the
-      # exact commit publish-dart/publish-flutter will build from, so
+      # exact commit publish-dart will build from, so
       # whatever's wrong here is exactly what would otherwise break
       # publishing.
       - uses: actions/checkout@v7
@@ -52,6 +48,23 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           ref: ${{ env.RELEASE_TAG }}
+
+      # Tests are not repeated for a tag: CI already ran on this exact commit
+      # (pull request / push to main). Publishing from a commit CI has not
+      # passed on is refused instead -- run ci.yml manually for it first
+      # (Actions -> CI -> Run workflow), then re-tag.
+      - name: The tagged commit must already have a successful CI run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          RUNS="$(gh run list --workflow ci.yml --commit "$SHA" --status success --json databaseId --jq length)"
+          if [ "$RUNS" -eq 0 ]; then
+            echo "::error::No successful CI run found for $SHA. Run the CI workflow on this commit (or merge through a PR/main so it runs), then re-tag."
+            exit 1
+          fi
+          echo "CI already passed on $SHA ($RUNS successful run(s))."
 
       - name: Extract version and detect pre-release
         id: meta
@@ -64,36 +77,22 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: dart/ and flutter/ pubspec.yaml must already read this tag's version
+      - name: pubspec.yaml must already read this tag's version
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
-          DART_VERSION="$(grep '^version:' dart/pubspec.yaml | awk '{print $2}')"
-          FLUTTER_VERSION="$(grep '^version:' flutter/pubspec.yaml | awk '{print $2}')"
-          FLUTTER_DEP="$(grep -E '^\s*bclibc: \^' flutter/pubspec.yaml | sed -E 's/.*\^([^[:space:]]+)$/\1/')"
-          fail=0
-          if [ "$DART_VERSION" != "$VERSION" ]; then
-            echo "dart/pubspec.yaml has version $DART_VERSION, expected $VERSION"
-            fail=1
-          fi
-          if [ "$FLUTTER_VERSION" != "$VERSION" ]; then
-            echo "flutter/pubspec.yaml has version $FLUTTER_VERSION, expected $VERSION"
-            fail=1
-          fi
-          if [ "$FLUTTER_DEP" != "$VERSION" ]; then
-            echo "flutter/pubspec.yaml's bclibc dependency constraint is ^$FLUTTER_DEP, expected ^$VERSION"
-            fail=1
-          fi
-          if [ "$fail" = 1 ]; then
+          PUBSPEC_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          if [ "$PUBSPEC_VERSION" != "$VERSION" ]; then
+            echo "pubspec.yaml has version $PUBSPEC_VERSION, expected $VERSION"
             echo "Run scripts/ci/prepare_release.py $VERSION locally, commit, and re-tag."
             exit 1
           fi
 
-      - name: dart/CHANGELOG.md must already have a "## [$VERSION]" heading (not just [Unreleased])
+      - name: CHANGELOG.md must already have a "## [$VERSION]" heading (not just [Unreleased])
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
           V_RE="${VERSION//./\\.}"
-          if ! grep -qE "^## \[$V_RE\]" dart/CHANGELOG.md; then
-            echo "dart/CHANGELOG.md has no '## [$VERSION]' heading -- run scripts/ci/prepare_release.py $VERSION locally, commit, and re-tag."
+          if ! grep -qE "^## \[$V_RE\]" CHANGELOG.md; then
+            echo "CHANGELOG.md has no '## [$VERSION]' heading -- run scripts/ci/prepare_release.py $VERSION locally, commit, and re-tag."
             exit 1
           fi
 
@@ -111,13 +110,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Extract release notes from dart/CHANGELOG.md
+      - name: Extract release notes from CHANGELOG.md
         run: |
           VERSION="${{ needs.verify-release.outputs.version }}"
-          ./scripts/ci/extract-changelog.sh "$VERSION" dart/CHANGELOG.md > /tmp/release_notes.md
+          ./scripts/ci/extract-changelog.sh "$VERSION" CHANGELOG.md > /tmp/release_notes.md
 
           if [ ! -s /tmp/release_notes.md ]; then
-            echo "No changelog entry found for $VERSION (or [Unreleased]) in dart/CHANGELOG.md -- add one first"
+            echo "No changelog entry found for $VERSION (or [Unreleased]) in CHANGELOG.md -- add one first"
             exit 1
           fi
 
@@ -139,56 +138,20 @@ jobs:
           body_path: /tmp/release_notes.md
           prerelease: ${{ needs.verify-release.outputs.prerelease }}
 
-  # ── publish bclibc to pub.dev ────────────────────────────────────────
+  # ── publish bclibc to pub.dev (bclibc_flutter is no longer released from
+  # this repository) ────────────────────────────────────────
   publish-dart:
     needs: [verify-release, create-release]
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a missing credential must fail, not hang on an interactive prompt
     environment: pub-dart
     permissions:
       id-token: write # pub.dev OIDC trusted publisher
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
           submodules: recursive
-
-      - uses: dart-lang/setup-dart@v1
-
-      - run: dart pub get
-      - run: dart pub publish --dry-run
-      - run: dart pub publish --force
-
-  # ── publish bclibc_flutter to pub.dev ────────────────────────────────
-  # bclibc_flutter is a deprecated shim that only re-exports bclibc (which now
-  # carries native, wasm and Flutter support by itself), so it is a plain Dart
-  # package -- no Flutter SDK needed. Depends on publish-dart finishing
-  # first: dependency_overrides (path: ../dart) only applies while this
-  # repo's own checkout is the root package being resolved (i.e. right here
-  # in CI) -- it's inert once bclibc_flutter is a dependency of someone
-  # else's app, so its real `bclibc: ^VERSION` constraint should already be
-  # resolvable on pub.dev by the time this publishes, not just locally.
-  #
-  # `environment: pub-flutter` is a GitHub environment with a wait-timer
-  # protection rule configured in this repo's settings, giving pub.dev a few
-  # minutes to finish indexing the bclibc version publish-dart just
-  # published before this job tries to resolve it as a real (non-overridden)
-  # dependency.
-  publish-flutter:
-    needs: [verify-release, create-release, publish-dart]
-    runs-on: ubuntu-latest
-    environment: pub-flutter
-    permissions:
-      id-token: write # pub.dev OIDC trusted publisher
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.RELEASE_TAG }}
 
       - uses: dart-lang/setup-dart@v1
 

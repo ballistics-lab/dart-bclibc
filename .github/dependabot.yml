@@ -6,12 +6,11 @@
 version: 2
 updates:
 
-  # dart/ is the one real package: its dependencies (ffi, hooks, code_assets,
-  # native_toolchain_c, web) and dev dependencies (test, ffigen, lints).
-  # flutter/ is a deprecated re-export shim whose only dependency is bclibc,
-  # which release.yml/prepare_release.py keep in lockstep -- nothing to bump.
+  # The repo root is the one package: its dependencies (ffi, hooks,
+  # code_assets, native_toolchain_c, web) and dev dependencies (test,
+  # ffigen, lints).
   - package-ecosystem: "pub"
-    directory: "/dart"
+    directory: "/"
     schedule:
       interval: "weekly"
     groups:

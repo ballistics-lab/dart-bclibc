@@ -1,47 +1,267 @@
-# dart-bclibc
+# bclibc
+
+Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) ballistics engine.
 
 [![Made in Ukraine]][SWUBadge]
 
 [![License]](LICENSE)
-[![Dart Pub Version]][dart pub package]
+[![Pub Version]][pub package]
 [![powered by bclibc]][bclibc repo]
+
+![Linux] ![Windows] ![macOS]
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
-A single package for **Dart, Flutter and the web**: the
-[bclibc](https://github.com/ballistics-lab/bclibc) ballistics engine — a
-high-performance 3-DOF + spin drift ballistic solver with RK4/Euler/adaptive
-integration.
+A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source in the package; no pre-built binaries and no downloads.
 
-- **[`dart/`](dart) — [`bclibc`](https://pub.dev/packages/bclibc)**: the package.
-  - *Native* (Dart VM, Flutter on Android/iOS/Linux/macOS/Windows): a
-    [build hook](dart/hook/build.dart) compiles the bundled C++ sources into a
-    native asset, so `dart run`, `dart test`, `flutter run`, `flutter build` and
-    `flutter test` all work with no extra build step and no network access.
-  - *Web* (Dart web and Flutter web): the engine runs as a wasm module
-    embedded in the package; nothing to bundle or serve.
-  - `AsyncCalculator` works on every platform.
-- **[`flutter/`](flutter) — [`bclibc_flutter`](https://pub.dev/packages/bclibc_flutter)**:
-  *deprecated.* A thin shim that only re-exports `bclibc`; depend on `bclibc`
-  directly.
+One package for Dart, Flutter and the web — no companion package. Native targets get the library from a build hook that compiles the bundled sources (`dart run`, `dart test`, `flutter build` and `flutter test` all work, offline, no setup); web targets run the engine as a wasm module embedded in the package.
 
-Start with [`dart/README.md`](dart/README.md).
+---
 
-## Building from source
+## Table of Contents
+
+- [dart\_bclibc](#bclibc)
+  - [Table of Contents](#table-of-contents)
+  - [Quick start](#quick-start)
+  - [API](#api)
+    - [Input types](#input-types)
+    - [Result types](#result-types)
+    - [`BcLibC` methods](#bclibc-methods)
+    - [Enums](#enums)
+  - [Async API](#async-api)
+  - [Atmosphere and Coriolis](#atmosphere-and-coriolis)
+  - [Unit system](#unit-system)
+  - [Building](#building)
+    - [Prerequisites](#prerequisites)
+    - [Clone](#clone)
+    - [Native library](#native-library-1)
+    - [Regenerate FFI bindings](#regenerate-ffi-bindings)
+    - [Run tests](#run-tests)
+  - [Native library](#native-library)
+  - [Dependencies](#dependencies)
+  - [License](#license)
+
+---
+
+## Quick start
+
+```dart
+import 'package:bclibc/bclibc.dart';
+
+final bc = BcLibC.open(); // loads the native library once
+
+final shot = BcShot(
+  bc: 0.295,
+  weightGrain: 168.0,
+  diameterInch: 0.308,
+  lengthInch: 1.22,
+  muzzleVelocityFps: 2750.0,
+  sightHeightFt: 0.1148,
+  twistInch: 10.0,
+  tempC: 15.0,
+  pressureHpa: 1013.25,
+  altitudeFt: 0.0,
+  dragTable: [BcDragPoint(0.0, 0.0), /* … Mach / CD pairs … */],
+  lookAngleRad: 0.0,
+  barrelElevationRad: 0.0,
+);
+
+final hit = bc.integrateShot(
+  shot,
+  BcTrajectoryRequest(rangeLimitFt: 3000.0, rangeStepFt: 100.0),
+);
+
+for (final pt in hit.trajectory) {
+  print('${pt.distanceFt} ft  ${pt.velocityFps} fps  ${pt.heightFt} ft');
+}
+```
+
+---
+
+## API
+
+### Input types
+
+| Dart type             | Description                                                                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BcShot`              | Preferred shot input (natural units). All physics conversion — atmosphere density, Coriolis trig, PCHIP drag curve, cant — is performed inside C++ via `BCLIBCFFI_Shot::to_shot_props()`. |
+| `BcShotProps`         | Legacy shot input (pre-computed `BcAtmosphere`/`BcCoriolis` structs).                                                                                                                     |
+| `BcTrajectoryRequest` | Step size, range limit, and `BCLIBCFFI_TrajFlag` filter bitmask.                                                                                                                          |
+| `BcConfig`            | Solver knobs (step multiplier, accuracy, gravity constant, etc.).                                                                                                                         |
+| `BcDragPoint`         | One Mach / CD entry for the drag table.                                                                                                                                                   |
+| `BcWind`              | One wind segment (velocity, direction, distance bounds).                                                                                                                                  |
+
+### Result types
+
+| Dart type          | Description                                           |
+| ------------------ | ----------------------------------------------------- |
+| `BcTrajectoryData` | One filtered trajectory record.                       |
+| `BcHitResult`      | Full trajectory list + `BCLIBCFFI_TerminationReason`. |
+| `BcInterception`   | Single interpolated point from `integrateAtShot`.     |
+| `BcMaxRangeResult` | Max range (ft) + angle (rad) from `findMaxRangeShot`. |
+
+### `BcLibC` methods
+
+| Method                                       | Description                                     |
+| -------------------------------------------- | ----------------------------------------------- |
+| `BcLibC.open()`                              | Load the native library (call once at startup). |
+| `integrateShot(BcShot, BcTrajectoryRequest)` | Full filtered trajectory.                       |
+| `integrateAtShot(BcShot, key, value)`        | Single interpolated point at a trajectory key.  |
+| `findZeroAngleShot(BcShot, distanceFt)`      | Barrel elevation to zero at distance.           |
+| `findApexShot(BcShot)`                       | Highest point of the trajectory arc.            |
+| `findMaxRangeShot(BcShot)`                   | Maximum range and corresponding angle.          |
+| `getCorrection(distanceFt, offsetFt)`        | Angular correction (rad) for a linear offset.   |
+| `calculateEnergy(grains, fps)`               | Kinetic energy (ft-lb).                         |
+| `calculateOgw(grains, fps)`                  | Optimal Game Weight.                            |
+
+Legacy `BcShotProps`-based overloads (`findApex`, `findMaxRange`, etc.) are retained for backwards compatibility.
+
+### Enums
+
+| Dart enum             | Description                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| `BCLIBCFFI_TrajFlag`  | Trajectory filter flags (`BCLIBCFFI_TRAJ_FLAG_RANGE`, `BCLIBCFFI_TRAJ_FLAG_APEX`, …) |
+| `BcTerminationReason` | Why integration stopped (`BcHitResult.reason`).                                      |
+| `BcBaseTrajInterpKey` | Key field selector for `integrateAtShot` (`.posX`, `.time`, `.mach`, …).             |
+| `BcIntegrationMethod` | `BcIntegrationMethod.rk4` (default), `.euler`, `.velocityVerlet` (`BcShot.method`).  |
+
+`BcTerminationReason`, `BcBaseTrajInterpKey`, and `BcIntegrationMethod` (from
+`lib/ffi/bclibc_types.dart`) are platform-agnostic — the same types work with
+both `BcLibC` (native) and `BcLibCWeb` (web). They replace the raw
+ffigen-generated `BCLIBCFFI_*` enum classes in the public API; those still
+exist in `bclibc_bindings.g.dart` but are native-internal implementation
+detail now.
+
+---
+
+## Async API
+
+`AsyncCalculator` is the `Future`-returning counterpart to `Calculator` and the
+one to use on the web. On native targets each call runs on a fresh isolate; on
+the web the embedded wasm module is instantiated once (the only inherently async
+part) and every call after that is a plain synchronous call into it.
+
+```dart
+import 'package:bclibc/bclibc.dart';
+
+final result = await AsyncCalculator().fire(
+  shot: shot,
+  trajectoryRange: Distance.meter(1000),
+);
+```
+
+---
+
+## Atmosphere and Coriolis
+
+When using `BcShot`:
+
+- Pass `pressureHpa: 0` for vacuum (zero drag).
+- Pass `latitudeDeg: double.nan` to disable Coriolis (default `BcShot` value).
+- Pass `azimuthDeg: double.nan` for flat-fire drift only.
+
+---
+
+## Unit system
+
+`lib/unit.dart` provides typed unit wrappers with an `in_()` / `toDouble()` API:
+
+```dart
+import 'package:bclibc/unit.dart';
+
+final t = Temperature.celsius(15.0);
+print(t.in_(TemperatureUnit.fahrenheit)); // 59.0
+
+final d = Distance.meters(100.0);
+print(d.in_(DistanceUnit.feet));          // 328.084...
+```
+
+Available types: `Distance`, `Velocity`, `Temperature`, `Pressure`, `Angular`, `Weight`, `Energy`.
+
+---
+
+## Building
+
+### Prerequisites
+
+- Dart SDK ≥ 3.11.4
+- C++17 compiler (GCC / Clang on Linux/macOS, MSVC 2022 on Windows) — the build hook drives it directly, no CMake needed
+- LLVM/Clang dev headers (only for regenerating FFI bindings)
+- zig (via `uv run --with ziglang`) — only for rebuilding the embedded wasm module
+
+### Clone
 
 ```bash
 git clone --recurse-submodules https://github.com/ballistics-lab/dart-bclibc.git
 cd dart-bclibc
-make test       # native tests (the build hook compiles the library)
-make web-test   # web tests in Chrome, against the embedded wasm
 ```
 
-The C++ engine ([bclibc](https://github.com/ballistics-lab/bclibc)) is vendored
-as a single git submodule, `dart/bclibc`. `make verify-bclibc` checks that
-every place that pins it — the submodule, the embedded wasm module
-(`dart/lib/ffi/bclibc_wasm.g.dart`) and the CHANGELOG — agrees on one commit;
-`make install-hooks` runs it as a pre-commit hook. After bumping the submodule,
-rebuild the wasm module with `uv run --with ziglang make build-wasm`.
+If you cloned without `--recurse-submodules`:
+
+```bash
+git submodule update --init
+```
+
+### Native library
+
+There is no build step. `hook/build.dart` compiles `libbclibc_ffi` from the
+bundled `bclibc/` sources whenever Dart or Flutter needs it (`dart run`,
+`dart test`, `flutter run/build/test`), and the `@Native` bindings in
+`lib/ffi/bclibc_bindings.g.dart` resolve it through the resulting code asset —
+the same way in every mode. A C++ toolchain (clang/gcc, MSVC or Xcode) must be
+installed; nothing is downloaded.
+
+### Regenerate FFI bindings
+
+```bash
+# Install LLVM first:
+#   Linux:   sudo apt install libclang-dev clang
+#   macOS:   brew install llvm
+#   Windows: winget install LLVM
+
+make ffigen
+```
+
+The generated file is `lib/ffi/bclibc_bindings.g.dart`.
+
+### Run tests
+
+```bash
+make test        # native tests (the build hook compiles the library)
+make web-test    # web tests in Chrome, against the embedded wasm module
+```
+
+After bumping the `bclibc` submodule, rebuild the embedded wasm module with
+`uv run --with ziglang make build-wasm`; `make verify-bclibc` (also run in CI,
+and as a pre-commit hook after `make install-hooks`) checks that the submodule,
+the wasm module and this package's changelog agree on one bclibc commit.
+
+---
+
+## Native library
+
+| Platform | Library name          |
+| -------- | --------------------- |
+| Linux    | `libbclibc_ffi.so`    |
+| macOS    | `libbclibc_ffi.dylib` |
+| Windows  | `bclibc_ffi.dll`      |
+
+Android and iOS are built by the same hook (the Flutter tool drives it for
+those targets). WebAssembly uses the module embedded in
+`lib/ffi/bclibc_wasm.g.dart` instead, rebuilt with `make build-wasm`.
+
+---
+
+## Dependencies
+
+| Dependency                                                 | Role                                                                                         |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [bclibc](https://github.com/ballistics-lab/bclibc)          | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
+| [ffi](https://pub.dev/packages/ffi)                        | Dart ↔ C FFI bindings                                                                        |
+| [hooks](https://pub.dev/packages/hooks), [code_assets](https://pub.dev/packages/code_assets), [native_toolchain_c](https://pub.dev/packages/native_toolchain_c) | Build hook that compiles the bundled sources into a native asset |
+| [web](https://pub.dev/packages/web)                        | `dart:js_interop` bindings used by the web (wasm) backend                                    |
+
+---
 
 ## License
 
@@ -49,25 +269,34 @@ Copyright (C) 2026 Yaroshenko Dmytro (o-murphy)
 
 This library is free software: you can redistribute it and/or modify it under the terms of the **GNU Lesser General Public License v3.0** as published by the Free Software Foundation.
 
-See [LICENSE](LICENSE) for the full text.
+See [LICENSE](LICENSE) for the full text. See [CHANGELOG](CHANGELOG.md) for release history.
 
 > [!NOTE]
-> `bclibc` (the ballistic solver engine) is licensed separately under the **GNU Lesser General Public License v3.0**. See [`dart/bclibc/LICENSE`](dart/bclibc/LICENSE).
+> `bclibc` (the ballistic solver engine, located in `bclibc/`) is licensed separately under the **GNU Lesser General Public License v3.0**. See [`bclibc/LICENSE`](bclibc/LICENSE).
 
 > [!WARNING]
 > **Risk notice.** This package performs approximate simulations of complex physical processes. Calculation results must not be considered as completely or reliably reflecting actual projectile behaviour. Results may be used for educational purposes only and must not be relied upon in any context where an incorrect calculation could cause financial harm or put a human life at risk.
 >
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
 <!-- REUSABLE LINKS -->
+
 
 [Made in Ukraine]: https://img.shields.io/badge/made_in-Ukraine-ffd700.svg?labelColor=0057b7&style=flat-square
 [SWUBadge]: https://stand-with-ukraine.pp.ua
 
 [License]: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
 
-[Dart Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
-[dart pub package]: https://pub.dev/packages/bclibc
+[Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
+[pub package]: https://pub.dev/packages/bclibc
+
+[Linux]: https://img.shields.io/badge/Linux-x86__64%20%7C%20arm64-grey?logo=linux&logoColor=black&labelColor=FCC624
+[Windows]: https://img.shields.io/badge/x86__64-grey?logo=windows&logoColor=black&label=Windows&labelColor=0078D4
+[Android]: https://img.shields.io/badge/Android-arm64%20%7C%20armv7%20%7C%20x86__64-grey?logo=android&logoColor=white&labelColor=3DDC84
+[iOS]: https://img.shields.io/badge/iOS-arm64-grey?logo=apple&logoColor=white&labelColor=000000
+[macOS]: https://img.shields.io/badge/macOS-arm64%20%7C%20x86__64-grey?logo=apple&logoColor=white&labelColor=000000
+[WebAssembly]: https://img.shields.io/badge/WebAssembly-grey?logo=webassembly&logoColor=white&labelColor=654FF0
 
 [bclibc repo]: https://github.com/ballistics-lab/bclibc
 [powered by bclibc]:

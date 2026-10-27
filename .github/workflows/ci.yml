@@ -4,31 +4,27 @@ on:
   push:
     branches: [main]
     paths: &ci-paths
-      - "dart/**"
-      - "flutter/**"
+      - "lib/**"
+      - "hook/**"
+      - "test/**"
+      - "bclibc"
+      - "pubspec.yaml"
+      - "ffigen.yaml"
+      - "analysis_options.yaml"
+      - "CHANGELOG.md"
       - "Makefile"
-      - "scripts/ci/**"
+      - "scripts/**"
       - ".github/workflows/ci.yml"
   pull_request:
     paths: *ci-paths
-  workflow_call:
+  # Manual run, e.g. for a commit the paths filter above skipped but that you want
+  # to tag: release.yml requires a successful CI run on the tagged commit.
+  workflow_dispatch:
 
-# No top-level `concurrency:` here -- this workflow is also invoked as a
-# reusable workflow from release.yml (run-tests), and inside that context
-# `github.workflow` still refers to the *caller's* name ("Release"), not
-# "CI". A concurrency group keyed on `${{ github.workflow }}-${{ github.ref
-# }}` would then resolve to the exact same group release.yml's own
-# top-level concurrency block already holds for that run, which GitHub
-# detects as a self-deadlock and cancels outright ("Canceling since a
-# deadlock was detected for concurrency group ... between a top level
-# workflow and 'run-tests'"). release.yml's own concurrency block is enough
-# to dedupe/cancel superseded release runs; a stale push/pull_request CI
-# run for this workflow's own direct triggers just runs to completion
-# instead of being cancelled by a newer one, which is a fine trade-off here.
 jobs:
-  # ── the bclibc pin must agree everywhere: the dart/bclibc submodule, the
-  # embedded wasm module and the CHANGELOG. Needs no submodule checkout: tags
-  # are resolved via `git ls-remote`, and CI=true makes an unresolvable tag
+  # ── the bclibc pin must agree everywhere: the bclibc submodule, the embedded
+  # wasm module and the CHANGELOG. Needs no submodule checkout: tags are
+  # resolved via `git ls-remote`, and CI=true makes an unresolvable tag
   # fatal. ────────────────────────────────────────────────────────────────────
   verify-bclibc:
     name: Verify bclibc versions stay in sync
@@ -38,14 +34,11 @@ jobs:
 
       - run: make verify-bclibc
 
-  # ── dart/ — the one real package: native (build hook), web (embedded wasm)
-  # and Flutter all use it as is. ───────────────────────────────────────────────
-  analyze-dart:
-    name: dart/ Analyze
+  # ── one package: native (build hook), web (embedded wasm) and Flutter all
+  # use it as is. ─────────────────────────────────────────────────────────────
+  analyze:
+    name: Analyze
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
 
@@ -56,16 +49,13 @@ jobs:
 
   # The build hook (hook/build.dart) compiles the bundled sources, so a C++
   # compiler is all that's needed -- no separate "build native" step.
-  test-dart:
-    name: dart/ Test (${{ matrix.os }})
+  test:
+    name: Test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
@@ -85,13 +75,10 @@ jobs:
   # The wasm module is embedded in the package (lib/ffi/bclibc_wasm.g.dart):
   # no asset to stage. The submodule is still needed: `dart test` runs the
   # package's build hook even for `-p chrome`, and the hook compiles
-  # dart/bclibc's sources.
-  test-dart-web:
-    name: dart/ Test / web (Chrome)
+  # bclibc/'s sources.
+  test-web:
+    name: Test / web (Chrome)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
@@ -111,7 +98,7 @@ jobs:
   # the case the build hook exists for (a bundled-library lookup that works
   # the same under `flutter test` as under `dart run`).
   test-flutter:
-    name: Flutter consumer Test (Linux)
+    name: Test / Flutter consumer (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -132,45 +119,13 @@ jobs:
       - name: flutter test against bclibc
         run: scripts/ci/flutter-smoke.sh
 
-  publish-dry-run-dart:
-    name: dart/ pub.dev dry-run
+  publish-dry-run:
+    name: pub.dev dry-run
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
-      - uses: dart-lang/setup-dart@v1
-
-      - run: dart pub get
-      - run: dart pub publish --dry-run
-
-  # ── flutter/ — deprecated shim that only re-exports bclibc ───────────────────
-  analyze-flutter:
-    name: flutter/ Analyze
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: dart-lang/setup-dart@v1
-
-      - run: dart pub get
-      - run: dart analyze --fatal-infos
-
-  publish-dry-run-flutter:
-    name: flutter/ pub.dev dry-run
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
 
       - uses: dart-lang/setup-dart@v1
 

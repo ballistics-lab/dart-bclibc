@@ -1,0 +1,15 @@
+# Not part of the published package. (pub uses this file *instead of*
+# .gitignore, so build output is excluded here as well.)
+.github/
+scripts/
+Makefile
+.dart_tool/
+build/
+coverage/
+pubspec.lock
+
+# bclibc is a submodule: the hook compiles bclibc/src, bclibc/include only.
+bclibc/tests/
+bclibc/tiny_bclibc/
+bclibc/build/
+bclibc/.github/

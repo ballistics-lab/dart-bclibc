@@ -36,9 +36,10 @@ This release merges `bclibc_flutter` into `bclibc`: one package now works on the
 ### Removed
 - **BREAKING:** `dart run bclibc:build_native` (`bin/build_native.dart`) and the `BCLIBC_FFI_PATH` environment
   variable: the build hook replaces them.
-- The `flutter/bclibc` submodule and `sync-bclibc`: `dart/bclibc` is the single bclibc pin (`make verify-bclibc`
+- The `flutter/bclibc` submodule and `sync-bclibc`: `bclibc/` is the single bclibc pin (`make verify-bclibc`
   now checks that pin, the embedded wasm module and this changelog).
-- `bclibc_flutter`'s platform plugin code (CMake/Gradle/podspec); it is now a re-export shim, see its changelog.
+- The `bclibc_flutter` package and its platform plugin code (CMake/Gradle/podspec) are removed from this repository; depend on `bclibc` directly (the last published `bclibc_flutter` is 1.0.1).
+- The `dart/` and `flutter/` directories: the package now lives at the repository root, and the bclibc submodule is `bclibc/`.
 
 ## [1.0.1] - 2026-10-27
 
