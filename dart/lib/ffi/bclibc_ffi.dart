@@ -17,6 +17,7 @@ import 'package:path/path.dart' as p;
 
 import 'bclibc_bindings.g.dart';
 import 'bclibc_types.dart';
+import 'native_lib_lookup.dart';
 
 export 'bclibc_types.dart';
 
@@ -102,8 +103,20 @@ ffi.DynamicLibrary _openLibrary() {
     }
   }
 
+  // 5. `.dart_tool/package_config.json` read directly — `flutter test`
+  //    (Flutter 3.47+) makes strategy 1 throw `UnsupportedError`, so the
+  //    library `dart run bclibc:build_native` placed in the package is only
+  //    reachable this way. Last, so compiled builds never pick up a stale
+  //    dev-time copy over the bundled one.
+  final fromConfig = findNativeLibInPackageConfig(
+    package: 'bclibc',
+    platform: platform,
+    libName: libName,
+  );
+  if (fromConfig != null) return ffi.DynamicLibrary.open(fromConfig);
+
   throw FileSystemException(
-    'Could not locate $libName (tried package: URI and ${candidates.join(", ")}). '
+    'Could not locate $libName (tried package: URI, package_config.json and ${candidates.join(", ")}). '
     'Run `dart run bclibc:build_native` for a plain Dart project, or add '
     'bclibc_flutter as a dependency for a Flutter app.',
   );
