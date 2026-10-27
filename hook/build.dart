@@ -3,9 +3,12 @@
 // which the `@Native` bindings in that file resolve at runtime. Same code path
 // for `dart run`, `dart test`, `flutter run/build/test` -- nothing is
 // downloaded, everything comes from the package archive.
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
+import 'package:ffi/ffi.dart';
 import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 
@@ -79,6 +82,9 @@ void main(List<String> args) async {
         ],
       ],
     ).run(input: input, output: output);
+
+    // Fail the *build*, not the app at startup, if the library is not usable.
+    await _verifyBuiltLibrary(input, os);
   });
 }
 
@@ -117,4 +123,76 @@ String _versionHeader(String version) {
 
 #endif // BCLIBC_VERSION_H
 ''';
+}
+
+/// Checks the library that was just built, so that a build which produced an
+/// unusable library fails here instead of in the user's app at startup:
+///
+///  * it exists;
+///  * it contains every `BCLIBCFFI_*` function the `@Native` bindings call
+///    (catches a missing export, e.g. a symbol dropped by the Linux version
+///    script or not `__declspec(dllexport)`-ed on Windows, which would otherwise
+///    only surface as "Couldn't resolve native function" at the first call);
+///  * when the target is the machine doing the build, it actually loads and
+///    `BCLIBCFFI_get_version()` returns (catches an unresolved dependency, a
+///    wrong architecture, ...). Cross-compiled targets (Android, iOS) get the
+///    first two checks only.
+Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
+  final config = input.config.code;
+  final fileName = os.libraryFileName('bclibc_ffi', DynamicLoadingBundled());
+  final lib = File.fromUri(input.outputDirectory.resolve(fileName));
+  if (!lib.existsSync() || lib.lengthSync() == 0) {
+    throw StateError(
+      'bclibc build check: $fileName was not produced '
+      '(expected ${lib.path}).',
+    );
+  }
+
+  final bindings = File.fromUri(
+    input.packageRoot.resolve('lib/ffi/bclibc_bindings.g.dart'),
+  ).readAsStringSync();
+  final required = {
+    for (final m in RegExp(
+      r'external\s[^;]*?\b(BCLIBCFFI_\w+)\(',
+    ).allMatches(bindings))
+      m.group(1)!,
+  };
+  if (required.isEmpty) {
+    throw StateError(
+      'bclibc build check: found no BCLIBCFFI_* functions in '
+      'lib/ffi/bclibc_bindings.g.dart.',
+    );
+  }
+  final binary = latin1.decode(lib.readAsBytesSync(), allowInvalid: true);
+  final missing = [
+    for (final name in required)
+      if (!binary.contains(name)) name,
+  ];
+  if (missing.isNotEmpty) {
+    throw StateError(
+      'bclibc build check: $fileName does not contain '
+      '${missing.length} function(s) the bindings call: '
+      '${missing.take(8).join(', ')}${missing.length > 8 ? ', ...' : ''}. '
+      'Check the export list (bclibc/src/ffi/bclibc_ffi.version, '
+      'BCLIBC_FFI_EXPORT).',
+    );
+  }
+
+  if (os == OS.current && config.targetArchitecture == Architecture.current) {
+    try {
+      final get = DynamicLibrary.open(lib.path)
+          .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+            'BCLIBCFFI_get_version',
+          );
+      final version = get().toDartString();
+      if (version.isEmpty) {
+        throw StateError('BCLIBCFFI_get_version() returned an empty string');
+      }
+    } on Object catch (e) {
+      throw StateError(
+        'bclibc build check: $fileName was built but cannot be '
+        'loaded and called on this machine: $e',
+      );
+    }
+  }
 }

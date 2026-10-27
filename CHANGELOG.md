@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `BcLibC.open()` no longer succeeds with an unusable library. With the `@Native` bindings of 2.0.0-alpha.1 the
+  library is resolved lazily, so `open()` just created an object and a missing or unloadable `libbclibc_ffi` only
+  failed later, at the first calculation, as an `ArgumentError` ("Couldn't resolve native function ...") -- which
+  defeated startup checks such as `try { BcLibC.open(); } catch (...) { exit(1); }`. It now calls
+  `BCLIBCFFI_get_version()` right away and throws a `StateError` that names the library.
+
+### Added
+- The build hook checks the library it just built, so a bad build fails the **build** instead of the app at startup:
+  the file must exist, contain every `BCLIBCFFI_*` function the bindings call (catches a missing export, e.g. a
+  symbol dropped by the Linux version script or not exported from the Windows DLL), and, when the target is the
+  machine doing the build, actually load and answer `BCLIBCFFI_get_version()`.
+- Stricter CI: the built example is run on Linux and Windows (it must load the engine and solve a shot, and must
+  fail fast once the library is removed from the bundle), `scripts/ci/missing-library-check.sh` does the same for a
+  plain Dart executable, and an Android emulator job loads the library on a device (`example/integration_test`).
+
 ## [2.0.0-alpha.1] - 2026-10-27
 
 This release merges `bclibc_flutter` into `bclibc`: one package now works on the Dart VM, in Flutter
