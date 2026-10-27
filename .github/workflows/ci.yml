@@ -3,34 +3,34 @@ name: CI
 on:
   push:
     branches: [main]
+    # Only what a job actually reads. CHANGELOG.md and pubspec.yaml are the two
+    # files a release-prep commit changes, and release.yml refuses to publish
+    # a commit CI has not passed on -- so they must trigger CI. Other doc-only
+    # commits skip it (start it by hand with workflow_dispatch before tagging).
     paths: &ci-paths
-      - "dart/**"
-      - "flutter/**"
+      - "lib/**"
+      - "hook/**"
+      - "test/**"
+      - "bclibc"
+      - "example/**"
+      - "pubspec.yaml"
+      - "analysis_options.yaml"
+      - "CHANGELOG.md"
       - "Makefile"
-      - "scripts/ci/**"
+      - "scripts/ci/verify-bclibc.sh"
+      - "scripts/ci/flutter-smoke.sh"
       - ".github/workflows/ci.yml"
   pull_request:
     paths: *ci-paths
-  workflow_call:
+  # Manual run, e.g. for a commit the paths filter above skipped but that you want
+  # to tag: release.yml requires a successful CI run on the tagged commit.
+  workflow_dispatch:
 
-# No top-level `concurrency:` here -- this workflow is also invoked as a
-# reusable workflow from release.yml (run-tests), and inside that context
-# `github.workflow` still refers to the *caller's* name ("Release"), not
-# "CI". A concurrency group keyed on `${{ github.workflow }}-${{ github.ref
-# }}` would then resolve to the exact same group release.yml's own
-# top-level concurrency block already holds for that run, which GitHub
-# detects as a self-deadlock and cancels outright ("Canceling since a
-# deadlock was detected for concurrency group ... between a top level
-# workflow and 'run-tests'"). release.yml's own concurrency block is enough
-# to dedupe/cancel superseded release runs; a stale push/pull_request CI
-# run for this workflow's own direct triggers just runs to completion
-# instead of being cancelled by a newer one, which is a fine trade-off here.
 jobs:
-  # ── every bclibc pin must agree: dart/bclibc and flutter/bclibc submodules
-  # (each package needs its own checkout — see Makefile's verify-bclibc
-  # comment), flutter/ CMake BCLIBC_VERSION, the prebuilt wasm asset and the
-  # CHANGELOGs. Needs no submodule checkout: tags are resolved via
-  # `git ls-remote`, and CI=true makes an unresolvable tag fatal. ────────────
+  # ── the bclibc pin must agree everywhere: the bclibc submodule, the embedded
+  # wasm module and the CHANGELOG. Needs no submodule checkout: tags are
+  # resolved via `git ls-remote`, and CI=true makes an unresolvable tag
+  # fatal. ────────────────────────────────────────────────────────────────────
   verify-bclibc:
     name: Verify bclibc versions stay in sync
     runs-on: ubuntu-latest
@@ -39,31 +39,28 @@ jobs:
 
       - run: make verify-bclibc
 
-  # ── dart/ — pure Dart, no Flutter SDK needed ────────────────────────────────
-  analyze-dart:
-    name: dart/ Analyze
+  # ── one package: native (build hook), web (embedded wasm) and Flutter all
+  # use it as is. ─────────────────────────────────────────────────────────────
+  analyze:
+    name: Analyze
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
 
       - uses: dart-lang/setup-dart@v1
 
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart analyze --fatal-infos
 
-  test-dart:
-    name: dart/ Test (${{ matrix.os }})
+  # The build hook (hook/build.dart) compiles the bundled sources, so a C++
+  # compiler is all that's needed -- no separate "build native" step.
+  test:
+    name: Test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
@@ -75,18 +72,18 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake clang
+          sudo apt-get install -y clang
 
-      - run: dart pub get
-      - run: dart run bin/build_native.dart
-      - run: dart test
+      - run: dart pub get --no-example
+      - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
 
-  publish-dry-run-dart:
-    name: dart/ pub.dev dry-run
+  # The wasm module is embedded in the package (lib/ffi/bclibc_wasm.g.dart):
+  # no asset to stage. The submodule is still needed: `dart test` runs the
+  # package's build hook even for `-p chrome`, and the hook compiles
+  # bclibc/'s sources.
+  test-web:
+    name: Test / web (Chrome)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dart
     steps:
       - uses: actions/checkout@v7
         with:
@@ -94,62 +91,35 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
 
-      - run: dart pub get
-      - run: dart pub publish --dry-run
-
-  # ── flutter/ — Flutter plugin wrapper ────────────────────────────────────────
-  analyze-flutter:
-    name: flutter/ Analyze
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
-
-      - run: flutter pub get
-      - run: flutter analyze
-
-  # Exercises flutter/linux/CMakeLists.txt's Mode 3 (FetchContent) fallback
-  # directly — no bclibc submodule checked out, simulating a fresh `dart pub
-  # get`/`flutter pub get` of a git (not pub.dev-archive) dependency.
-  test-flutter-fetchcontent:
-    name: flutter/ Test / FetchContent (Linux)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-        # no submodules — simulates `dart pub get` of a git dep
-
       - name: Install system deps
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang
+          sudo apt-get install -y clang
 
-      - name: Build native library (Mode 3 — FetchContent)
-        run: |
-          cmake -S linux -B build/linux -DCMAKE_BUILD_TYPE=Debug -G Ninja
-          cmake --build build/linux --parallel
+      - run: dart pub get --no-example
+      - run: dart test -p chrome test/web/
 
-      - run: test -f build/linux/_deps/bclibc-build/libbclibc_ffi.so
-
-  # Native (non-web) tests need a real libbclibc_ffi.so on disk — built here
-  # via dart/'s own build_native.dart (same artifact `dart run
-  # bclibc:build_native` produces for a plain Dart consumer) and pointed
-  # at via BCLIBC_FFI_PATH, since `flutter test`'s isolate/JIT context doesn't
-  # reliably resolve the package: URI strategy the way `flutter run`/`dart
-  # run` do.
-  test-flutter-native:
-    name: flutter/ Test / native (Linux)
-    runs-on: ubuntu-latest
+  # example/ (a Flutter app that depends on bclibc by path), built for every
+  # target ebalistyka ships (Linux, Windows, Android, web) plus `flutter test`
+  # (the case the build hook exists for: a bundled-library lookup that works
+  # the same under `flutter test` as under `dart run`). Each build step then
+  # checks the library the hook compiled is in the build output.
+  # See scripts/ci/flutter-smoke.sh.
+  flutter-smoke:
+    name: Flutter ${{ matrix.target }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: test, os: ubuntu-latest }
+          - { target: linux, os: ubuntu-latest }
+          - { target: android, os: ubuntu-latest }
+          - { target: web, os: ubuntu-latest }
+          - { target: windows, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
         with:
@@ -162,69 +132,23 @@ jobs:
           pub-cache: true
 
       - name: Install system deps
+        if: matrix.os == 'ubuntu-latest' && (matrix.target == 'test' || matrix.target == 'linux')
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake clang
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
-      - name: Build native library
-        working-directory: dart
-        run: |
-          dart pub get
-          dart run bin/build_native.dart
+      - name: ${{ matrix.target }}
+        run: scripts/ci/flutter-smoke.sh ${{ matrix.target }}
 
-      - working-directory: flutter
-        run: flutter pub get
-
-      - name: Run tests
-        working-directory: flutter
-        env:
-          BCLIBC_FFI_PATH: ${{ github.workspace }}/dart/lib/native/linux/libbclibc_ffi.so
-        run: flutter test test/async_calculator_test.dart
-
-  test-flutter-web:
-    name: flutter/ Test / web (Chrome)
+  publish-dry-run:
+    name: pub.dev dry-run
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-        # no submodules — this only needs the checked-in assets/wasm/
-        # artifact, not a native bclibc build
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
-
-      - run: flutter pub get
-
-      - name: Stage wasm test fixture
-        run: |
-          mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
-          cp assets/wasm/bclibc_ffi.wasm \
-            test/web/assets/packages/bclibc_flutter/assets/wasm/
-
-      - name: Run web tests
-        run: dart test -p chrome test/web/
-
-  publish-dry-run-flutter:
-    name: flutter/ pub.dev dry-run
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
+      - uses: dart-lang/setup-dart@v1
 
-      - run: flutter pub get
+      - run: dart pub get --no-example
       - run: dart pub publish --dry-run

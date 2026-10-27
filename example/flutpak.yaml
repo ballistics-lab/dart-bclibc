@@ -1,0 +1,24 @@
+# Builds this example as an offline Flatpak with flutpak
+# (https://github.com/o-murphy/flutpak), the way ebalistyka is built. CI:
+# .github/workflows/flatpak.yml. The app depends on bclibc by path (../), so the
+# whole repository, including the bclibc submodule, is the Flatpak source and
+# the package's build hook compiles the C++ inside the sandbox, offline.
+output: flatpak
+
+flutter:
+  ref: 3.47.8
+
+foreign-deps-ref: v0.8.6
+
+repo-url: https://github.com/ballistics-lab/dart-bclibc.git
+subdir: example
+
+app-id: io.github.ballistics_lab.bclibc_example
+runtime-version: "25.08"
+command: bclibc_example
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri

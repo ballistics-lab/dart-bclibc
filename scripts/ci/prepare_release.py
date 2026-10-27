@@ -10,24 +10,16 @@ derives its version from `git describe` see "N commits past the tag" and
 reject it; bclibc doesn't use that scheme today, but there's no upside
 to inviting the failure mode).
 
-bclibc and bclibc_flutter are versioned in lockstep: one VERSION,
-one `vX.Y.Z` tag, for both packages every release.
-
 What this script does, all as uncommitted working-tree edits for you to
 review with `git diff` and commit yourself:
-  1. Renames dart/CHANGELOG.md's "## [Unreleased]" heading to
+  1. Renames CHANGELOG.md's "## [Unreleased]" heading to
      "## [VERSION] - DATE" and adds a fresh empty "## [Unreleased]" above
      it. Fails if that section is empty (nothing to release).
-  2. Does the same to flutter/CHANGELOG.md -- if its "## [Unreleased]" is
-     empty (common: most releases don't touch flutter/), inserts a one-line
-     "version bump only" note instead of failing.
-  3. Updates the reference-style links at the bottom of both CHANGELOG.md
-     files (adds "[VERSION]: .../compare/PREV...VERSION" or
+  2. Updates the reference-style links at the bottom of CHANGELOG.md
+     (adds "[VERSION]: .../compare/PREV...VERSION" or
      ".../releases/tag/VERSION" for the first release, repoints
      "[Unreleased]").
-  4. Bumps dart/pubspec.yaml's version, flutter/pubspec.yaml's version, and
-     flutter/pubspec.yaml's `bclibc: ^...` dependency constraint, all
-     to VERSION.
+  3. Bumps pubspec.yaml's version to VERSION.
 
 It does NOT commit, tag, or push anything -- that's on you, after reviewing
 the diff:
@@ -71,7 +63,7 @@ def check_clean_tree() -> None:
         )
 
 
-def update_changelog(path: Path, version: str, *, allow_empty: bool) -> None:
+def update_changelog(path: Path, version: str) -> None:
     lines = path.read_text().splitlines()
 
     unreleased_idx = next(
@@ -87,22 +79,16 @@ def update_changelog(path: Path, version: str, *, allow_empty: bool) -> None:
     )
     unreleased_body = [line for line in body[:next_heading_idx] if line.strip()]
 
-    insert = ["## [Unreleased]", ""]
     if not unreleased_body:
-        if not allow_empty:
-            fail(
-                f"{path.relative_to(REPO_ROOT)}'s '## [Unreleased]' section is "
-                "empty -- add the release's changes there first."
-            )
-        insert += [
-            f"## [{version}] - {date.today().isoformat()}",
-            "",
-            f"_No changes -- version bumped to stay in lockstep with the other "
-            f"package._",
-            "",
-        ]
-    else:
-        insert += [f"## [{version}] - {date.today().isoformat()}", ""]
+        fail(
+            f"{path.relative_to(REPO_ROOT)}'s '## [Unreleased]' section is "
+            "empty -- add the release's changes there first."
+        )
+    insert = [
+        "## [Unreleased]",
+        "",
+        f"## [{version}] - {date.today().isoformat()}",
+    ]
 
     prev_version = None
     m = HEADING_RE.match(body[next_heading_idx]) if next_heading_idx < len(body) else None
@@ -149,16 +135,9 @@ def main() -> int:
 
     check_clean_tree()
 
-    update_changelog(REPO_ROOT / "dart" / "CHANGELOG.md", version, allow_empty=False)
-    update_changelog(REPO_ROOT / "flutter" / "CHANGELOG.md", version, allow_empty=True)
+    update_changelog(REPO_ROOT / "CHANGELOG.md", version)
 
-    bump_field(REPO_ROOT / "dart" / "pubspec.yaml", r"^version: .*$", f"version: {version}")
-    bump_field(REPO_ROOT / "flutter" / "pubspec.yaml", r"^version: .*$", f"version: {version}")
-    bump_field(
-        REPO_ROOT / "flutter" / "pubspec.yaml",
-        r"^(\s*bclibc: )\^[^\s]+$",
-        rf"\g<1>^{version}",
-    )
+    bump_field(REPO_ROOT / "pubspec.yaml", r"^version: .*$", f"version: {version}")
 
     print(
         f"\nReview with `git diff`, then:\n"
