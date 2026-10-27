@@ -56,6 +56,10 @@ void main(List<String> args) async {
       assetName: 'ffi/bclibc_bindings.g.dart',
       language: Language.cpp,
       std: 'c++17',
+      // Android's default is c++_shared, i.e. a runtime dependency on
+      // libc++_shared.so that nothing bundles into the APK: dlopen then fails on
+      // the device although the build succeeded.
+      cppLinkStdLib: os == OS.android ? 'c++_static' : null,
       sources: [for (final s in _sources) root.resolve(s).toFilePath()],
       // `generated/` is passed as a -I flag below, not in `includes`: CBuilder
       // tracks every `includes` entry as a build dependency, and this
@@ -195,6 +199,12 @@ Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
     }
   } else {
     final binary = latin1.decode(lib.readAsBytesSync(), allowInvalid: true);
+    if (os == OS.android && binary.contains('libc++_shared.so')) {
+      throw StateError(
+        'bclibc build check: $fileName depends on libc++_shared.so, which is '
+        'not bundled into the app (link libc++ statically).',
+      );
+    }
     missing = [
       for (final name in required)
         if (!binary.contains(name)) name,

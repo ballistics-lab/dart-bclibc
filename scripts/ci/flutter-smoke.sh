@@ -88,6 +88,10 @@ case "$TARGET" in
     SO="$(mktemp -d)"
     for abi in arm64-v8a x86_64; do
       unzip -p "$APK" "lib/$abi/libbclibc_ffi.so" > "$SO/$abi.so"
+      # Every DT_NEEDED must be a system library: nothing else is in the APK.
+      if readelf -d "$SO/$abi.so" | grep -q 'libc++_shared'; then
+        echo "MISSING: $abi libbclibc_ffi.so needs libc++_shared.so, which is not bundled" >&2; exit 1
+      fi
       for align in $(readelf -lW "$SO/$abi.so" | awk '$1=="LOAD" {print $NF}'); do
         [ $((align)) -ge 16384 ] || { echo "MISSING: $abi LOAD segment aligned to $align, need >= 0x4000 (16 KB)" >&2; exit 1; }
       done
