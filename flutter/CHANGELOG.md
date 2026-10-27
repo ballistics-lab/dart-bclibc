@@ -12,8 +12,7 @@ packages are released together under the same tag/version.
 
 ## [1.0.1] - 2026-10-27
 
-### Changed
-- Version bump only — released in lockstep with `bclibc` 1.0.1 (see its changelog); depends on `bclibc ^1.0.1`.
+_No changes -- version bumped to stay in lockstep with the other package._
 
 ## [1.0.0] - 2026-10-03
 
