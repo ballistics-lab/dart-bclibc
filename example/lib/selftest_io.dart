@@ -26,5 +26,12 @@ Future<void> runSelfTestIfRequested(
 void _report(String message, {bool error = false}) {
   (error ? stderr : stdout).writeln(message);
   final out = Platform.environment['BCLIBC_EXAMPLE_SELFTEST_OUT'];
-  if (out != null && out.isNotEmpty) File(out).writeAsStringSync('$message\n');
+  if (out == null || out.isEmpty) return;
+  // A failed write (e.g. the macOS App Sandbox forbids the path) must not keep
+  // the process from reaching exit(): the result is on stdout/stderr anyway.
+  try {
+    File(out).writeAsStringSync('$message\n');
+  } on Object catch (e) {
+    stderr.writeln('could not write self-test result to $out: $e');
+  }
 }

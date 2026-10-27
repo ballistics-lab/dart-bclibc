@@ -27,6 +27,13 @@ on:
   # to tag: release.yml requires a successful CI run on the tagged commit.
   workflow_dispatch:
 
+# A new push to a pull request cancels the CI still running for its previous
+# commit. Runs on main and manual runs are never cancelled: release.yml needs a
+# *completed* successful run on the tagged commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ── the bclibc pin must agree everywhere: the bclibc submodule, the embedded
   # wasm module and the CHANGELOG. Needs no submodule checkout: tags are
@@ -113,6 +120,7 @@ jobs:
   # See scripts/ci/flutter-smoke.sh.
   flutter-smoke:
     name: Flutter ${{ matrix.target }} (${{ matrix.os }})
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

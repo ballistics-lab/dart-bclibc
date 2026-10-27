@@ -21,16 +21,25 @@ flutter pub get
 # `fail`, the caller removed the library first, so open() has to fail loudly.
 # Only in CI: on Linux it opens a window, which needs a display (xvfb).
 selftest() { # selftest <ok|fail> <exe>
-  local want="$1" exe="$2" out code=0 runner=() limit=()
-  # macOS has no `timeout` (coreutils installs it as `gtimeout`).
-  if command -v timeout >/dev/null; then limit=(timeout 120)
-  elif command -v gtimeout >/dev/null; then limit=(gtimeout 120); fi
+  local want="$1" exe="$2" out code=0 runner=() pid wd log
   [ -n "${CI:-}" ] || { echo "skip: self-test run (set CI=1 to run the built app)"; return 0; }
-  out="$(mktemp -u)"
+  out="$(mktemp -u)"; log="$(mktemp)"
   if [ "$(uname -s)" = Linux ] && command -v xvfb-run >/dev/null; then runner=(xvfb-run -a); fi
+  # Own watchdog instead of timeout(1): macOS has none, and a GUI app that never
+  # reaches exit() would otherwise hold the runner until the job times out.
   BCLIBC_EXAMPLE_SELFTEST=1 BCLIBC_EXAMPLE_SELFTEST_OUT="$out" \
-    ${limit[@]+"${limit[@]}"} ${runner[@]+"${runner[@]}"} "$exe" >/dev/null 2>&1 || code=$?
+    ${runner[@]+"${runner[@]}"} "$exe" >"$log" 2>&1 &
+  pid=$!
+  ( sleep 120; pkill -9 -P "$pid" 2>/dev/null; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+  wd=$!
+  wait "$pid" || code=$?
+  kill "$wd" 2>/dev/null || true
+  [ "$code" -ne 137 ] || echo "the self-test did not finish within 120 s and was killed" >&2
   local msg; msg="$(cat "$out" 2>/dev/null || true)"
+  # No result file (the app could not write it): the same text is on stdout.
+  [ -n "$msg" ] || msg="$(cat "$log" 2>/dev/null || true)"
+  # The app's own stdout/stderr, so a hang or crash is not silent.
+  [ "$code" -eq 0 ] || { echo "--- app output (exit $code) ---" >&2; cat "$log" >&2 || true; echo "--- end ---" >&2; }
   if [ "$want" = ok ]; then
     if [ "$code" -eq 0 ] && [[ "$msg" == "bclibc self-test ok"* ]]; then echo "OK: the built app loaded the engine and solved a shot"
     else echo "FAILED: the built app could not run the engine (exit $code): $msg" >&2; exit 1; fi
