@@ -1,0 +1,103 @@
+name: iOS investigation
+
+# Temporary: only the iOS part of ci.yml, to find out why the integration test on
+# the simulator sometimes never finishes (it passed in some runs of the same code
+# and hung after "Xcode build done" in others). Runs on a push to this branch only,
+# so nothing else of CI is started. Two independent jobs (separate VMs) tell a
+# flaky test from a bad runner.
+
+on:
+  push:
+    branches: [ci/ios-investigate]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iOS #${{ matrix.run }}
+    runs-on: macos-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2]
+    defaults:
+      run:
+        shell: bash
+        working-directory: example
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Environment (compare it between good and bad runs)
+        working-directory: .
+        run: |
+          echo "runner: ${RUNNER_NAME:-?}  image: ${ImageOS:-?} ${ImageVersion:-?}"
+          sw_vers; uname -m
+          xcodebuild -version
+          flutter --version
+          xcrun simctl list runtimes
+          system_profiler SPHardwareDataType | grep -E "Model|Chip|Memory|Cores" || true
+          vm_stat | head -5
+          df -h / | tail -1
+
+      - name: Build for a device (unsigned)
+        run: |
+          set -euo pipefail
+          [ -d ios ] || flutter create --platforms=ios --project-name bclibc_example .
+          flutter pub get
+          flutter build ios --release --no-codesign
+          APP="$(find build/ios -type d -name Runner.app | head -1)"
+          LIB="$(find "$APP" -type f -name '*bclibc_ffi*' | head -1)"
+          echo "library: $LIB"; lipo -archs "$LIB"
+
+      - name: Boot a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available | grep -m1 iPhone | grep -oE '[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}')"
+          echo "UDID=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl list devices | grep -E "Booted|$UDID"
+
+      - name: Integration test (verbose, with a heartbeat and a 15 min watchdog)
+        env:
+          UDID: ${{ steps.sim.outputs.UDID }}
+        run: |
+          set +e
+          LOG="$RUNNER_TEMP/flutter-test.log"; : > "$LOG"
+          START=$(date +%s)
+          flutter test integration_test -d "$UDID" -v > "$LOG" 2>&1 &
+          PID=$!
+          tail -n +1 -f "$LOG" &
+          TAIL=$!
+          while kill -0 "$PID" 2>/dev/null; do
+            sleep 30
+            E=$(( $(date +%s) - START ))
+            echo "::notice::[$E s] test still running; log $(wc -l < "$LOG") lines; last: $(tail -n 1 "$LOG" | cut -c1-160)"
+            if [ "$E" -ge 900 ]; then
+              echo "::error::WATCHDOG: integration test did not finish in 900 s, collecting diagnostics"
+              echo "--- processes"; ps aux | grep -E "flutter|dart|xcodebuild|Simulator|simctl|bclibc" | grep -v grep | cut -c1-200
+              echo "--- simulator state"; xcrun simctl list devices | grep -E "Booted|Shutdown" | head
+              echo "--- simulator log, last 10 min (errors, bclibc, crashes)"
+              xcrun simctl spawn "$UDID" log show --last 10m --style compact 2>&1 \
+                | grep -iE "bclibc|dyld|crash|terminat|jetsam|fatal|error" | tail -80
+              echo "--- crash reports"; ls -la ~/Library/Logs/DiagnosticReports 2>/dev/null | tail -5
+              pkill -9 -P "$PID" 2>/dev/null; kill -9 "$PID" 2>/dev/null
+              break
+            fi
+          done
+          wait "$PID" 2>/dev/null; CODE=$?
+          kill "$TAIL" 2>/dev/null
+          echo "flutter test exit code: $CODE  after $(( $(date +%s) - START )) s"
+          exit "$CODE"
