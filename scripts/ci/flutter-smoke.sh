@@ -41,7 +41,7 @@ selftest() { # selftest <ok|fail> <exe>
   # The app's own stdout/stderr, so a hang or crash is not silent.
   [ "$code" -eq 0 ] || { echo "--- app output (exit $code) ---" >&2; cat "$log" >&2 || true; echo "--- end ---" >&2; }
   if [ "$want" = ok ]; then
-    if [ "$code" -eq 0 ] && [[ "$msg" == "bclibc self-test ok"* ]]; then echo "OK: the built app loaded the engine and solved a shot"
+    if [ "$code" -eq 0 ] && [[ "$msg" == *"bclibc self-test ok"* ]]; then echo "OK: the built app loaded the engine and solved a shot"
     else echo "FAILED: the built app could not run the engine (exit $code): $msg" >&2; exit 1; fi
   else
     if [ "$code" -ne 0 ] && [[ "$msg" == *"Could not load the native bclibc library"* ]]; then echo "OK: with the library removed the app fails fast: ${msg%%$'\n'*}"
