@@ -21,12 +21,15 @@ flutter pub get
 # `fail`, the caller removed the library first, so open() has to fail loudly.
 # Only in CI: on Linux it opens a window, which needs a display (xvfb).
 selftest() { # selftest <ok|fail> <exe>
-  local want="$1" exe="$2" out code=0 runner=()
+  local want="$1" exe="$2" out code=0 runner=() limit=()
+  # macOS has no `timeout` (coreutils installs it as `gtimeout`).
+  if command -v timeout >/dev/null; then limit=(timeout 120)
+  elif command -v gtimeout >/dev/null; then limit=(gtimeout 120); fi
   [ -n "${CI:-}" ] || { echo "skip: self-test run (set CI=1 to run the built app)"; return 0; }
   out="$(mktemp -u)"
   if [ "$(uname -s)" = Linux ] && command -v xvfb-run >/dev/null; then runner=(xvfb-run -a); fi
   BCLIBC_EXAMPLE_SELFTEST=1 BCLIBC_EXAMPLE_SELFTEST_OUT="$out" \
-    timeout 120 ${runner[@]+"${runner[@]}"} "$exe" >/dev/null 2>&1 || code=$?
+    ${limit[@]+"${limit[@]}"} ${runner[@]+"${runner[@]}"} "$exe" >/dev/null 2>&1 || code=$?
   local msg; msg="$(cat "$out" 2>/dev/null || true)"
   if [ "$want" = ok ]; then
     if [ "$code" -eq 0 ] && [[ "$msg" == "bclibc self-test ok"* ]]; then echo "OK: the built app loaded the engine and solved a shot"
