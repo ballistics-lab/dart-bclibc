@@ -120,6 +120,7 @@ jobs:
           - { target: test, os: ubuntu-latest }
           - { target: linux, os: ubuntu-latest }
           - { target: macos, os: macos-latest }
+          - { target: ios, os: macos-latest }
           - { target: android, os: ubuntu-latest }
           - { target: web, os: ubuntu-latest }
           - { target: windows, os: windows-latest }

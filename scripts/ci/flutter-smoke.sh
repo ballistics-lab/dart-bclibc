@@ -3,7 +3,7 @@
 # path and references the engine) for one target, then checks that the library
 # the build hook compiled actually ended up in the build output.
 #
-#   scripts/ci/flutter-smoke.sh [test|linux|macos|windows|android|web]
+#   scripts/ci/flutter-smoke.sh [test|linux|macos|ios|windows|android|web]
 #
 # `test` runs `flutter test` (the case that used to need a hand-built library
 # and a package: URI lookup); the others run the release `flutter build` of that
@@ -68,6 +68,26 @@ case "$TARGET" in
     selftest ok "$APP/Contents/MacOS/bclibc_example"
     find "$APP" -name '*bclibc_ffi*' -exec rm -rf {} +
     selftest fail "$APP/Contents/MacOS/bclibc_example"
+    ;;
+  ios)
+    # Like macos: the runner is generated, not checked in.
+    [ -d ios ] || flutter create --platforms=ios --project-name bclibc_example .
+    flutter pub get
+    # 1. Device build (arm64), unsigned: the hook has to compile for iphoneos
+    #    and Flutter has to put the library into Runner.app/Frameworks.
+    flutter build ios --release --no-codesign
+    APP="$(find build/ios -type d -name 'Runner.app' | head -1)"
+    have "bclibc_ffi library inside Runner.app" find "$APP" -name '*bclibc_ffi*'
+    LIB="$(find "$APP" -type f -name '*bclibc_ffi*' | head -1)"
+    ARCHS="$(lipo -archs "$LIB")"
+    case "$ARCHS" in *arm64*) echo "OK: device library is $ARCHS" ;;
+      *) echo "MISSING: arm64 in $LIB (found: $ARCHS)" >&2; exit 1 ;; esac
+    # 2. Load and compute on a simulator.
+    UDID="$(xcrun simctl list devices available | grep -m1 'iPhone' | grep -oE '[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}' || true)"
+    [ -n "$UDID" ] || { echo "no iPhone simulator available on this runner" >&2; exit 1; }
+    xcrun simctl boot "$UDID" || true
+    xcrun simctl bootstatus "$UDID" -b
+    flutter test integration_test -d "$UDID"
     ;;
   windows)
     flutter build windows --release
