@@ -12,6 +12,7 @@ on:
       - "hook/**"
       - "test/**"
       - "bclibc"
+      - "example/**"
       - "pubspec.yaml"
       - "analysis_options.yaml"
       - "CHANGELOG.md"
@@ -98,7 +99,7 @@ jobs:
       - run: dart pub get --no-example
       - run: dart test -p chrome test/web/
 
-  # A throwaway Flutter app that depends on bclibc by path, built for every
+  # example/ (a Flutter app that depends on bclibc by path), built for every
   # target ebalistyka ships (Linux, Windows, Android, web) plus `flutter test`
   # (the case the build hook exists for: a bundled-library lookup that works
   # the same under `flutter test` as under `dart run`). Each build step then
