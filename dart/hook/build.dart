@@ -37,8 +37,15 @@ void main(List<String> args) async {
     final version = await _describe(root);
     final generated = input.outputDirectory.resolve('generated/');
     final versionHeader = File.fromUri(generated.resolve('bclibc/version.h'));
-    await versionHeader.create(recursive: true);
-    await versionHeader.writeAsString(_versionHeader(version));
+    final header = _versionHeader(version);
+    // Write only when the content changed: rewriting an unchanged file bumps
+    // its mtime and makes the hook runner restart the build ("File modified
+    // during build. Build must be rerun.").
+    if (!versionHeader.existsSync() ||
+        versionHeader.readAsStringSync() != header) {
+      await versionHeader.create(recursive: true);
+      await versionHeader.writeAsString(header);
+    }
 
     final isWindows = os == OS.windows;
     await CBuilder.library(
@@ -47,10 +54,12 @@ void main(List<String> args) async {
       language: Language.cpp,
       std: 'c++17',
       sources: [for (final s in _sources) root.resolve(s).toFilePath()],
+      // `generated/` is passed as a -I flag below, not in `includes`: CBuilder
+      // tracks every `includes` entry as a build dependency, and this
+      // directory is created by the hook itself.
       includes: [
         root.resolve('include/').toFilePath(),
         root.resolve('src/').toFilePath(),
-        generated.toFilePath(),
       ],
       defines: {
         if (isWindows) ...{'BCLIBC_FFI_EXPORT': null, 'NOMINMAX': null},
@@ -58,6 +67,7 @@ void main(List<String> args) async {
       // Strict IEEE arithmetic, matching the CMake build (see upstream
       // CMakeLists.txt: -ffast-math is deliberately not used).
       flags: [
+        '${isWindows ? '/I' : '-I'}${generated.toFilePath()}',
         if (!isWindows) ...[
           '-ffp-contract=off',
           '-ffunction-sections',
