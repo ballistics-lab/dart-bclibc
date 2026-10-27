@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The native library is found under `flutter test` on Flutter 3.47+: there `Isolate.resolvePackageUriSync` throws
+  `UnsupportedError`, so the library placed by `dart run bclibc:build_native` was unreachable. As a last resort the
+  loader now reads `.dart_tool/package_config.json` directly (local files only, no network). It runs after the
+  executable-relative lookup, so compiled and bundled builds are unchanged.
+
 ## [1.0.0] - 2026-10-03
 
 Stable release, covering the whole arc from 0.2.3 through 1.0.0-rc.5. Highlights below; full details are in
