@@ -8,7 +8,7 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 [![Pub Version]][pub package]
 [![powered by bclibc]][bclibc repo]
 
-![Linux] ![Windows] ![macOS]
+![Linux] ![Windows] ![macOS] ![iOS] ![Android] ![WebAssembly]
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
@@ -20,7 +20,7 @@ One package for Dart, Flutter and the web — no companion package. Native targe
 
 ## Table of Contents
 
-- [dart\_bclibc](#bclibc)
+- [bclibc](#bclibc)
   - [Table of Contents](#table-of-contents)
   - [Quick start](#quick-start)
   - [API](#api)
@@ -34,10 +34,10 @@ One package for Dart, Flutter and the web — no companion package. Native targe
   - [Building](#building)
     - [Prerequisites](#prerequisites)
     - [Clone](#clone)
-    - [Native library](#native-library-1)
+    - [Native library](#native-library)
     - [Regenerate FFI bindings](#regenerate-ffi-bindings)
     - [Run tests](#run-tests)
-  - [Native library](#native-library)
+  - [Native library](#native-library-1)
   - [Dependencies](#dependencies)
   - [License](#license)
 
@@ -259,12 +259,12 @@ those targets). WebAssembly uses the module embedded in
 
 ## Dependencies
 
-| Dependency                                                 | Role                                                                                         |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [bclibc](https://github.com/ballistics-lab/bclibc)          | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
-| [ffi](https://pub.dev/packages/ffi)                        | Dart ↔ C FFI bindings                                                                        |
-| [hooks](https://pub.dev/packages/hooks), [code_assets](https://pub.dev/packages/code_assets), [native_toolchain_c](https://pub.dev/packages/native_toolchain_c) | Build hook that compiles the bundled sources into a native asset |
-| [web](https://pub.dev/packages/web)                        | `dart:js_interop` bindings used by the web (wasm) backend                                    |
+| Dependency                                                                                                                                                      | Role                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [bclibc](https://github.com/ballistics-lab/bclibc)                                                                                                              | C++ ballistic solver engine (3-DOF + spin drift, RK4) — LGPL-3.0, bundled as a git submodule |
+| [ffi](https://pub.dev/packages/ffi)                                                                                                                             | Dart ↔ C FFI bindings                                                                        |
+| [hooks](https://pub.dev/packages/hooks), [code_assets](https://pub.dev/packages/code_assets), [native_toolchain_c](https://pub.dev/packages/native_toolchain_c) | Build hook that compiles the bundled sources into a native asset                             |
+| [web](https://pub.dev/packages/web)                                                                                                                             | `dart:js_interop` bindings used by the web (wasm) backend                                    |
 
 ---
 
