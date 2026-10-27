@@ -13,7 +13,7 @@ foreign-deps-ref: v0.8.6
 repo-url: https://github.com/ballistics-lab/dart-bclibc.git
 subdir: example
 
-app-id: io.github.ballistics_lab.bclibc_example
+app-id: io.github.ballistics_lab.bclibc
 runtime-version: "25.08"
 command: bclibc_example
 

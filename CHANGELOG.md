@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-beta.1] - 2026-10-27
+
 ### Fixed
+- **Android:** `libbclibc_ffi.so` could not be loaded on a device, so 2.0.0-alpha.1 does not work on Android. The hook
+  linked libc++ dynamically (the `native_toolchain_c` default, `c++_shared`), but nothing puts `libc++_shared.so`
+  into the APK: the build succeeded and `dlopen` failed at run time with `library "libc++_shared.so" not found`.
+  libc++ is now linked statically (`c++_static`), together with libm (with a static libc++ nothing else pulls it in,
+  and `pow` stayed unresolved), and the hook fails the build if the Android binary still references
+  `libc++_shared.so`. CI now loads the library on an Android emulator, which is how this was found.
 - `BcLibC.open()` no longer succeeds with an unusable library. With the `@Native` bindings of 2.0.0-alpha.1 the
   library is resolved lazily, so `open()` just created an object and a missing or unloadable `libbclibc_ffi` only
   failed later, at the first calculation, as an `ArgumentError` ("Couldn't resolve native function ...") -- which
@@ -23,9 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names are searched for in the binary, which is a weaker check.
 - Android: the library is linked with `-Wl,-z,max-page-size=16384` (16 KB page alignment, required by Google Play for
   64-bit libraries), and CI checks every `LOAD` segment of the arm64-v8a and x86_64 libraries in the APK.
-- Stricter CI: the built example is run on Linux and Windows (it must load the engine and solve a shot, and must
-  fail fast once the library is removed from the bundle), `scripts/ci/missing-library-check.sh` does the same for a
-  plain Dart executable, and an Android emulator job loads the library on a device (`example/integration_test`).
+- `test/hook_test.dart` runs the hook through `testCodeBuildHook` (`package:code_assets`): it must emit exactly one
+  bundled code asset, `package:bclibc/ffi/bclibc_bindings.g.dart`, whose file name matches the target OS
+  (`libbclibc_ffi.so` / `.dylib`, `bclibc_ffi.dll`).
+- Stricter CI: the built example is run on Linux, Windows and macOS (it must load the engine and solve a shot, and
+  must fail fast once the library is removed from the bundle), `scripts/ci/missing-library-check.sh` does the same
+  for a plain Dart executable, an Android emulator job loads the library on a device and an iOS job builds the
+  example for a device (arm64) and runs it on a simulator (`example/integration_test`). The Android job also
+  checks that the library needs no `libc++_shared.so`.
+- The Flatpak workflow has a `bclibc_version` input: with a published version it builds the example against that
+  release from pub.dev instead of the path dependency, which proves the offline build works from the package
+  archive alone.
+
+### Changed
+- CI: a new push to a pull request cancels the run still going for its previous commit (runs on `main` and manual
+  runs are never cancelled, `release.yml` needs them); the self-test in `scripts/ci/flutter-smoke.sh` has its own
+  120 s limit (macOS has no `timeout`) and prints the app's output when it fails; the Flutter jobs have a time limit.
 
 ## [2.0.0-alpha.1] - 2026-10-27
 
@@ -404,7 +425,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-alpha.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-beta.1...HEAD
+[2.0.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-alpha.1...v2.0.0-beta.1
 [2.0.0-alpha.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.1...v2.0.0-alpha.1
 [1.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.ballistics_lab.bclibc_example</id>
+  <id>io.github.ballistics_lab.bclibc</id>
   <name>bclibc example</name>
   <summary>Solves a shot with the bclibc ballistics engine</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -16,5 +16,15 @@
     <name>ballistics-lab</name>
   </developer>
   <url type="homepage">https://github.com/ballistics-lab/dart-bclibc</url>
-  <launchable type="desktop-id">io.github.ballistics_lab.bclibc_example.desktop</launchable>
+  <launchable type="desktop-id">io.github.ballistics_lab.bclibc.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="2.0.0-alpha.1" date="2026-10-27"/>
+  </releases>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ballistics-lab/dart-bclibc/main/example/web/icons/Icon-512.png</image>
+      <caption>The example app (placeholder image)</caption>
+    </screenshot>
+  </screenshots>
 </component>

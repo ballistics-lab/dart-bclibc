@@ -5,7 +5,7 @@
 #
 # SAFE TO EDIT   finish-args, build-commands, build-options, sdk-extensions, modules
 # AUTO-INJECTED  tag, commit, modules, manifest.sources, pubspec-sources.json, and patches are set/appended by generate
-app-id: io.github.ballistics_lab.bclibc_example
+app-id: io.github.ballistics_lab.bclibc
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
@@ -19,7 +19,7 @@ finish-args:
   - --socket=wayland
   - --device=dri
 modules:
-  - name: bclibc_example
+  - name: bclibc
     subdir: example
     buildsystem: simple
     build-options:
@@ -33,7 +33,7 @@ modules:
       append-path: /usr/lib/sdk/llvm20/bin:/var/lib/flutter/bin
       prepend-ld-library-path: /usr/lib/sdk/llvm20/lib
       env:
-        PUB_CACHE: /run/build/bclibc_example/.pub-cache
+        PUB_CACHE: /run/build/bclibc/.pub-cache
     # Build steps — review and customise for your project.
     build-commands:
       - flutter pub get --offline
@@ -41,9 +41,9 @@ modules:
       - mkdir -p /app/bclibc_example
       - cp -r "$BUNDLE_PATH"/. /app/bclibc_example/
       - install -Dm755 flatpak/bclibc_example-wrapper.sh /app/bin/bclibc_example
-      - install -Dm644 app/share/metainfo/io.github.ballistics_lab.bclibc_example.metainfo.xml /app/share/metainfo/io.github.ballistics_lab.bclibc_example.metainfo.xml
-      - install -Dm644 app/share/applications/io.github.ballistics_lab.bclibc_example.desktop /app/share/applications/io.github.ballistics_lab.bclibc_example.desktop
-      - install -Dm644 app/share/icons/hicolor/256x256/apps/io.github.ballistics_lab.bclibc_example.png /app/share/icons/hicolor/256x256/apps/io.github.ballistics_lab.bclibc_example.png
+      - install -Dm644 app/share/metainfo/io.github.ballistics_lab.bclibc.metainfo.xml /app/share/metainfo/io.github.ballistics_lab.bclibc.metainfo.xml
+      - install -Dm644 app/share/applications/io.github.ballistics_lab.bclibc.desktop /app/share/applications/io.github.ballistics_lab.bclibc.desktop
+      - install -Dm644 app/share/icons/hicolor/256x256/apps/io.github.ballistics_lab.bclibc.png /app/share/icons/hicolor/256x256/apps/io.github.ballistics_lab.bclibc.png
     sources:
       - type: git
         url: https://github.com/ballistics-lab/dart-bclibc.git

@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 env:
-  APP_ID: io.github.ballistics_lab.bclibc_example
+  APP_ID: io.github.ballistics_lab.bclibc
 
 jobs:
   generate:
