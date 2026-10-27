@@ -112,6 +112,9 @@ jobs:
   # wait on forever), so the only thing under test is: does the library load and
   # compute on iOS.
   selftest:
+    # Parked: 3 of 3 samples launched the app but got no output from it in up to
+    # 180 s (the app stays alive, the simulator log shows nothing from Runner).
+    if: github.event_name == 'workflow_dispatch'
     name: simctl self-test #${{ matrix.run }}
     runs-on: macos-latest
     timeout-minutes: 25
@@ -183,3 +186,39 @@ jobs:
           echo "--- crash reports"; ls -la ~/Library/Logs/DiagnosticReports 2>/dev/null | tail -5
           xcrun simctl terminate "$UDID" "$BID" 2>/dev/null
           echo "FAILED: no 'bclibc self-test ok' within 180 s"; exit 1
+
+  # Exactly what the iOS job of ci.yml runs (same script, same shell, same working
+  # directory): if it hangs here too, the difference to the jobs above is how the
+  # test is invoked; if not, the hangs in ci.yml are down to the environment.
+  ci-script:
+    name: ci.yml iOS step #${{ matrix.run }}
+    runs-on: macos-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Environment
+        run: |
+          echo "runner: ${RUNNER_NAME:-?}  image: ${ImageOS:-?} ${ImageVersion:-?}"
+          sw_vers; xcodebuild -version; flutter --version | head -2
+
+      - name: scripts/ci/flutter-smoke.sh ios
+        run: |
+          date -u +%T
+          time scripts/ci/flutter-smoke.sh ios
+          date -u +%T
