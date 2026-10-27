@@ -27,6 +27,15 @@ void main() {
           expect(asset.linkMode, isA<DynamicLoadingBundled>());
           expect(asset.file, isNotNull);
           expect(File.fromUri(asset.file!).existsSync(), isTrue);
+          // The file name differs per target (libbclibc_ffi.so / .dylib,
+          // bclibc_ffi.dll); the hook's own checks and the CI scripts rely on it.
+          expect(
+            asset.file!.pathSegments.last,
+            input.config.code.targetOS.libraryFileName(
+              'bclibc_ffi',
+              DynamicLoadingBundled(),
+            ),
+          );
         },
       );
     },
