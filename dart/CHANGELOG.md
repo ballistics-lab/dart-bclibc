@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.1] - 2026-10-27
+
 This release merges `bclibc_flutter` into `bclibc`: one package now works on the Dart VM, in Flutter
 (Android/iOS/Linux/macOS/Windows) and on the web (Dart web and Flutter web), with a single bclibc pin.
 
@@ -366,7 +368,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-alpha.1...HEAD
+[2.0.0-alpha.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.1...v2.0.0-alpha.1
 [1.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0
 [1.0.0-rc.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...v1.0.0-rc.5
