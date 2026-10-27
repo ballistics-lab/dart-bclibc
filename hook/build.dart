@@ -3,9 +3,12 @@
 // which the `@Native` bindings in that file resolve at runtime. Same code path
 // for `dart run`, `dart test`, `flutter run/build/test` -- nothing is
 // downloaded, everything comes from the package archive.
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
+import 'package:ffi/ffi.dart';
 import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 
@@ -24,7 +27,7 @@ const _sources = [
   'src/ffi/bclibc_ffi.cpp',
 ];
 
-void main(List<String> args) async {
+Future<void> main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) return;
 
@@ -53,6 +56,13 @@ void main(List<String> args) async {
       assetName: 'ffi/bclibc_bindings.g.dart',
       language: Language.cpp,
       std: 'c++17',
+      // Android's default is c++_shared, i.e. a runtime dependency on
+      // libc++_shared.so that nothing bundles into the APK: dlopen then fails on
+      // the device although the build succeeded.
+      cppLinkStdLib: os == OS.android ? 'c++_static' : null,
+      // With a static libc++ nothing pulls in libm (libc++_shared.so did):
+      // "cannot locate symbol pow" at dlopen time.
+      libraries: [if (os == OS.android) 'm'],
       sources: [for (final s in _sources) root.resolve(s).toFilePath()],
       // `generated/` is passed as a -I flag below, not in `includes`: CBuilder
       // tracks every `includes` entry as a build dependency, and this
@@ -73,12 +83,18 @@ void main(List<String> args) async {
           '-ffunction-sections',
           '-fdata-sections',
         ],
+        // Google Play requires 64-bit native libraries to be aligned to 16 KB
+        // pages (apps targeting Android 15+); older NDKs default to 4 KB.
+        if (os == OS.android) '-Wl,-z,max-page-size=16384',
         if (os == OS.linux || os == OS.android) ...[
           '-Wl,--gc-sections',
           '-Wl,--version-script=${root.resolve('src/ffi/bclibc_ffi.version').toFilePath()}',
         ],
       ],
     ).run(input: input, output: output);
+
+    // Fail the *build*, not the app at startup, if the library is not usable.
+    await _verifyBuiltLibrary(input, os);
   });
 }
 
@@ -117,4 +133,93 @@ String _versionHeader(String version) {
 
 #endif // BCLIBC_VERSION_H
 ''';
+}
+
+/// Checks the library that was just built, so that a build which produced an
+/// unusable library fails here instead of in the user's app at startup.
+///
+/// The required symbols are every `BCLIBCFFI_*` function the `@Native` bindings
+/// call (read from lib/ffi/bclibc_bindings.g.dart).
+///
+///  * When the target is the machine doing the build, the library is actually
+///    loaded and every required symbol is looked up exactly like the runtime
+///    will do it (this catches a symbol dropped by the Linux version script or
+///    not exported from the Windows DLL, an unresolved dependency, a wrong
+///    architecture), and `BCLIBCFFI_get_version()` is called.
+///  * Cross-compiled targets (Android, iOS) cannot be loaded here; the names
+///    are searched for in the binary instead. That is a weaker check: a symbol
+///    that is present but hidden is not detected.
+Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
+  final config = input.config.code;
+  final fileName = os.libraryFileName('bclibc_ffi', DynamicLoadingBundled());
+  final lib = File.fromUri(input.outputDirectory.resolve(fileName));
+  if (!lib.existsSync() || lib.lengthSync() == 0) {
+    throw StateError(
+      'bclibc build check: $fileName was not produced '
+      '(expected ${lib.path}).',
+    );
+  }
+
+  final bindings = File.fromUri(
+    input.packageRoot.resolve('lib/ffi/bclibc_bindings.g.dart'),
+  ).readAsStringSync();
+  final required = {
+    for (final m in RegExp(
+      r'external\s[^;]*?\b(BCLIBCFFI_\w+)\(',
+    ).allMatches(bindings))
+      m.group(1)!,
+  };
+  if (required.isEmpty) {
+    throw StateError(
+      'bclibc build check: found no BCLIBCFFI_* functions in '
+      'lib/ffi/bclibc_bindings.g.dart.',
+    );
+  }
+
+  final List<String> missing;
+  if (os == OS.current && config.targetArchitecture == Architecture.current) {
+    try {
+      final dl = DynamicLibrary.open(lib.path);
+      missing = [
+        for (final name in required)
+          if (!dl.providesSymbol(name)) name,
+      ];
+      if (missing.isEmpty) {
+        final version = dl
+            .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+              'BCLIBCFFI_get_version',
+            )()
+            .toDartString();
+        if (version.isEmpty) {
+          throw StateError('BCLIBCFFI_get_version() returned an empty string');
+        }
+      }
+    } on Object catch (e) {
+      throw StateError(
+        'bclibc build check: $fileName was built but cannot be '
+        'loaded and called on this machine: $e',
+      );
+    }
+  } else {
+    final binary = latin1.decode(lib.readAsBytesSync(), allowInvalid: true);
+    if (os == OS.android && binary.contains('libc++_shared.so')) {
+      throw StateError(
+        'bclibc build check: $fileName depends on libc++_shared.so, which is '
+        'not bundled into the app (link libc++ statically).',
+      );
+    }
+    missing = [
+      for (final name in required)
+        if (!binary.contains(name)) name,
+    ];
+  }
+  if (missing.isNotEmpty) {
+    throw StateError(
+      'bclibc build check: $fileName does not export '
+      '${missing.length} function(s) the bindings call: '
+      '${missing.take(8).join(', ')}${missing.length > 8 ? ', ...' : ''}. '
+      'Check the export list (bclibc/src/ffi/bclibc_ffi.version, '
+      'BCLIBC_FFI_EXPORT).',
+    );
+  }
 }

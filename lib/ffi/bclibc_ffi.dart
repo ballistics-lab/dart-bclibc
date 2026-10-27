@@ -155,8 +155,26 @@ extension _FillNativeShot on BcShot {
 class BcLibC implements BcEngine {
   BcLibC._();
 
-  /// Open the native library. Call once per isolate.
-  factory BcLibC.open() => BcLibC._();
+  /// Opens the native library and checks that it is usable. Call once per
+  /// isolate.
+  ///
+  /// The `@Native` bindings resolve the library lazily, on the first call into
+  /// it, so a missing or unloadable `libbclibc_ffi` would otherwise only show
+  /// up later, as an `ArgumentError` out of the first calculation. This calls
+  /// one trivial native function right away so that the failure happens here,
+  /// where callers (and startup checks) expect it.
+  ///
+  /// Throws a [StateError] if the library cannot be loaded.
+  factory BcLibC.open() {
+    try {
+      BCLIBCFFI_get_version();
+    } on Object catch (e) {
+      throw StateError(
+        'Could not load the native bclibc library (libbclibc_ffi): $e',
+      );
+    }
+    return BcLibC._();
+  }
 
   // ── Utility functions ──────────────────────────────────────────────────────
 

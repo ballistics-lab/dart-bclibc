@@ -10,6 +10,15 @@ on:
   # Manual only (Actions -> Flatpak -> Run workflow): the build takes a long
   # time, so it is run on demand, e.g. after publishing a pre-release.
   workflow_dispatch:
+    inputs:
+      bclibc_version:
+        description: >-
+          Build against this PUBLISHED bclibc version from pub.dev instead of
+          the path dependency (../), e.g. 2.0.0-alpha.1. Proves the offline
+          build works from the package archive alone, independent of the
+          checked-out sources. Empty: use the path dependency.
+        type: string
+        default: "2.0.0-alpha.1"
 
 concurrency:
   group: flatpak-${{ github.ref }}
@@ -29,6 +38,28 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      # Done here, on the runner's working tree, not in the committed files:
+      # example/ keeps its path dependency for everyday use.
+      - name: Use the published bclibc instead of the path dependency
+        if: inputs.bclibc_version != ''
+        env:
+          BCLIBC_VERSION: ${{ inputs.bclibc_version }}
+        run: |
+          set -euo pipefail
+          # `/^  bclibc:$/{N;...}` joins the dependency line with its `path:`
+          # line and replaces both with `bclibc: <version>`.
+          EXPR="/^  bclibc:\$/{N;s|.*|  bclibc: ${BCLIBC_VERSION}|}"
+          # 1. The app resolves the published package (flutpak turns the
+          #    resulting pubspec.lock into pubspec-sources.json).
+          sed -i "$EXPR" example/pubspec.yaml
+          grep -q "^  bclibc: ${BCLIBC_VERSION}\$" example/pubspec.yaml
+          # 2. The sandbox builds the committed pubspec.yaml (git source): make
+          #    the same edit there, just before `flutter pub get --offline`.
+          manifest="example/flatpak/${APP_ID}.yml"
+          sed -i "s#^\( *\)- flutter pub get --offline\$#\1- \"sed -i -e '${EXPR}' pubspec.yaml\"\n&#" "$manifest"
+          grep -q "sed -i -e " "$manifest"
+          git diff --stat
 
       - name: Install Flutter
         uses: o-murphy/flutpak/.github/actions/flutter@v0.8.6
