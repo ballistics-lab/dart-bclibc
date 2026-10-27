@@ -10,6 +10,11 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-27
+
+### Changed
+- Version bump only — released in lockstep with `bclibc` 1.0.1 (see its changelog); depends on `bclibc ^1.0.1`.
+
 ## [1.0.0] - 2026-10-03
 
 Stable release, covering the whole arc from 0.2.3 through 1.0.0-rc.5. Highlights below; full details are in
@@ -173,7 +178,8 @@ the beta/rc entries beneath this one.
   Android/iOS/Linux/macOS/Windows and Web/WebAssembly support, plus
   `AsyncCalculator`. Re-exports everything from `bclibc`.
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v0.2.3...v1.0.0
 [1.0.0-rc.5]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [1.0.0-rc.4]: https://github.com/ballistics-lab/dart-bclibc/compare/v1.0.0-rc.2...v1.0.0-rc.4
