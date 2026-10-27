@@ -12,15 +12,15 @@ submodule:
 #   macOS:   brew install llvm
 #   Windows: winget install LLVM
 ffigen: submodule
-	dart pub get && dart run ffigen --config ffigen.yaml
+	dart pub get --no-example && dart run ffigen --config ffigen.yaml
 
 # Native (dart:ffi) tests; the build hook compiles the library on the way.
 test: submodule
-	dart pub get && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+	dart pub get --no-example && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
 
 # Web tests (dart:js_interop against the wasm module embedded in the package).
 web-test:
-	dart pub get && dart test -p chrome test/web/
+	dart pub get --no-example && dart test -p chrome test/web/
 
 format:
 	dart format hook/ lib/ test/

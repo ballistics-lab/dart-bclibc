@@ -182,6 +182,11 @@ Available types: `Distance`, `Velocity`, `Temperature`, `Pressure`, `Angular`, `
 
 ## Building
 
+> [!NOTE]
+> `example/` is a Flutter app, and a plain `dart pub get` in the repository root
+> resolves it too. Without the Flutter SDK use `dart pub get --no-example` (the
+> Makefile and CI do).
+
 ### Prerequisites
 
 - Dart SDK ≥ 3.11.4

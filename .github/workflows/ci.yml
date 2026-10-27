@@ -48,7 +48,7 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
 
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart analyze --fatal-infos
 
   # The build hook (hook/build.dart) compiles the bundled sources, so a C++
@@ -73,7 +73,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y clang
 
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
 
   # The wasm module is embedded in the package (lib/ffi/bclibc_wasm.g.dart):
@@ -95,7 +95,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y clang
 
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart test -p chrome test/web/
 
   # A throwaway Flutter app that depends on bclibc by path, built for every
@@ -149,5 +149,5 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
 
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart pub publish --dry-run
