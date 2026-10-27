@@ -60,6 +60,9 @@ void main(List<String> args) async {
       // libc++_shared.so that nothing bundles into the APK: dlopen then fails on
       // the device although the build succeeded.
       cppLinkStdLib: os == OS.android ? 'c++_static' : null,
+      // With a static libc++ nothing pulls in libm (libc++_shared.so did):
+      // "cannot locate symbol pow" at dlopen time.
+      libraries: [if (os == OS.android) 'm'],
       sources: [for (final s in _sources) root.resolve(s).toFilePath()],
       // `generated/` is passed as a -I flag below, not in `includes`: CBuilder
       // tracks every `includes` entry as a build dependency, and this
