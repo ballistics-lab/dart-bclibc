@@ -5,6 +5,8 @@ description: |
   
   Regenerate bindings with `dart run ffigen --config ffigen.yaml`.
 output: 'lib/ffi/bclibc_bindings.g.dart'
+ffi-native:
+  asset-id: 'package:bclibc/ffi/bclibc_bindings.g.dart'
 
 headers:
   entry-points:

@@ -10,6 +10,15 @@ packages are released together under the same tag/version.
 
 ## [Unreleased]
 
+### Changed
+- **Deprecated.** `bclibc_flutter` is now a thin shim that only re-exports `package:bclibc/bclibc.dart` and
+  `package:bclibc/unit.dart`. `bclibc` itself carries native, web (wasm) and Flutter support, so depend on
+  `bclibc` directly and replace `package:bclibc_flutter/...` imports with `package:bclibc/...`.
+
+### Removed
+- The Flutter plugin: platform CMake/Gradle/podspec integration, the `flutter/bclibc` submodule and the
+  `assets/wasm` asset. The build hook in `bclibc` replaces them.
+
 ## [1.0.1] - 2026-10-27
 
 _No changes -- version bumped to stay in lockstep with the other package._

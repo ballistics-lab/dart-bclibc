@@ -27,8 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Reuses ci.yml's own jobs (analyze/test/publish-dry-run for both
-  # packages, plus the bclibc-submodule-parity check) via workflow_call.
+  # Reuses ci.yml's own jobs (analyze/test/web/Flutter-consumer/publish-dry-run
+  # for both packages, plus the bclibc pin-parity check) via workflow_call.
   run-tests:
     uses: ./.github/workflows/ci.yml
 
@@ -162,19 +162,20 @@ jobs:
       - run: dart pub publish --force
 
   # ── publish bclibc_flutter to pub.dev ────────────────────────────────
-  # Depends on publish-dart finishing first: dependency_overrides (path:
-  # ../dart) only applies while this repo's own checkout is the root
-  # package being resolved (i.e. right here in CI) -- it's inert once
-  # bclibc_flutter is a dependency of someone else's app, so its real
-  # `bclibc: ^VERSION` constraint should already be resolvable on
-  # pub.dev by the time this publishes, not just locally.
+  # bclibc_flutter is a deprecated shim that only re-exports bclibc (which now
+  # carries native, wasm and Flutter support by itself), so it is a plain Dart
+  # package -- no Flutter SDK needed. Depends on publish-dart finishing
+  # first: dependency_overrides (path: ../dart) only applies while this
+  # repo's own checkout is the root package being resolved (i.e. right here
+  # in CI) -- it's inert once bclibc_flutter is a dependency of someone
+  # else's app, so its real `bclibc: ^VERSION` constraint should already be
+  # resolvable on pub.dev by the time this publishes, not just locally.
   #
-  # `environment: pub-flutter` is a *new* GitHub environment (this is a new
-  # package -- set up its own pub.dev trusted publisher against this exact
-  # environment name) with a wait-timer protection rule configured in this
-  # repo's settings, giving pub.dev a few minutes to finish indexing the
-  # bclibc version publish-dart just published before this job tries
-  # to resolve it as a real (non-overridden) dependency.
+  # `environment: pub-flutter` is a GitHub environment with a wait-timer
+  # protection rule configured in this repo's settings, giving pub.dev a few
+  # minutes to finish indexing the bclibc version publish-dart just
+  # published before this job tries to resolve it as a real (non-overridden)
+  # dependency.
   publish-flutter:
     needs: [verify-release, create-release, publish-dart]
     runs-on: ubuntu-latest
@@ -188,16 +189,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
-          submodules: recursive
 
-      # dart-lang/setup-dart's bundled `dart` shadows on PATH; Flutter SDK
-      # is required here to resolve `flutter: sdk: flutter`.
       - uses: dart-lang/setup-dart@v1
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
 
       - run: dart pub get
       - run: dart pub publish --dry-run

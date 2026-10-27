@@ -25,6 +25,7 @@ import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 
 import 'package:bclibc/ffi/bclibc_types.dart';
+import 'package:bclibc/ffi/bclibc_wasm.g.dart';
 
 export 'package:bclibc/ffi/bclibc_types.dart';
 
@@ -32,15 +33,23 @@ export 'package:bclibc/ffi/bclibc_types.dart';
 // Module loading
 // ============================================================================
 
-/// Fetches and instantiates the wasm module and returns its exports (`malloc`,
-/// `free`, `memory`, `BCLIBCFFI_*`). It imports nothing, so the import object is
+/// Instantiates the wasm module and returns its exports (`malloc`, `free`,
+/// `memory`, `BCLIBCFFI_*`). It imports nothing, so the import object is
 /// empty; `_initialize` (the reactor's static initializers) runs once.
-Future<JSObject> _loadModule(String wasmUrl) async {
-  final response = await web.window.fetch(wasmUrl.toJS).toDart;
-  if (!response.ok) {
-    throw StateError('Failed to fetch $wasmUrl: HTTP ${response.status}');
+///
+/// With no [wasmUrl] the module embedded in this package
+/// (bclibc_wasm.g.dart) is used -- no fetch, no asset to bundle or serve.
+Future<JSObject> _loadModule(String? wasmUrl) async {
+  final JSAny bytes;
+  if (wasmUrl == null) {
+    bytes = base64Decode(bclibcWasmBase64).toJS;
+  } else {
+    final response = await web.window.fetch(wasmUrl.toJS).toDart;
+    if (!response.ok) {
+      throw StateError('Failed to fetch $wasmUrl: HTTP ${response.status}');
+    }
+    bytes = await response.arrayBuffer().toDart;
   }
-  final bytes = await response.arrayBuffer().toDart;
   final webAssembly = globalContext.getProperty<JSObject>('WebAssembly'.toJS);
   final result = await webAssembly.callMethodVarArgs<JSPromise<JSObject>>(
     'instantiate'.toJS,
@@ -429,16 +438,11 @@ class BcLibCWeb implements BcEngine {
   /// Loads and instantiates the wasm module. Call once per app; the result
   /// can be reused for any number of shots/calls.
   ///
-  /// [wasmUrl] defaults to where Flutter web serves this package's own
-  /// bundled asset (declared under `flutter.assets` in pubspec.yaml) —
-  /// see `assets/wasm/` in the package root. Override it if you're loading
-  /// a differently-built or differently-hosted artifact (e.g. in a plain
-  /// `dart test -p chrome` run, which doesn't go through Flutter's asset
-  /// pipeline).
-  static Future<BcLibCWeb> open({
-    String wasmUrl =
-        'assets/packages/bclibc_flutter/assets/wasm/bclibc_ffi.wasm',
-  }) async {
+  /// By default the wasm module embedded in this package is used, so this
+  /// works the same in Dart web, Flutter web and `dart test -p chrome`.
+  /// Pass [wasmUrl] only to load a differently-built or differently-hosted
+  /// artifact instead.
+  static Future<BcLibCWeb> open({String? wasmUrl}) async {
     final module = await _loadModule(wasmUrl);
     final layoutBuf = module.callMethodVarArgs<JSNumber>('malloc'.toJS, [
       (_Layout.fieldCount * 4).toJS,
@@ -565,69 +569,70 @@ class BcLibCWeb implements BcEngine {
       });
 
   @override
-  BcHitResult integrateShot(BcShot shot, BcTrajectoryRequest request) =>
-      _using(_module, (arena) {
-        final shotPtr = _fillShot(arena, _layout, shot);
+  BcHitResult integrateShot(
+    BcShot shot,
+    BcTrajectoryRequest request,
+  ) => _using(_module, (arena) {
+    final shotPtr = _fillShot(arena, _layout, shot);
 
-        final reqPtr = arena.malloc(_layout.reqSize);
-        final outRecordsPtrPtr = arena.malloc(4);
-        final outCountPtr = arena.malloc(4);
-        final outReasonPtr = arena.malloc(4);
-        final errPtr = arena.malloc(_layout.errorSize);
+    final reqPtr = arena.malloc(_layout.reqSize);
+    final outRecordsPtrPtr = arena.malloc(4);
+    final outCountPtr = arena.malloc(4);
+    final outReasonPtr = arena.malloc(4);
+    final errPtr = arena.malloc(_layout.errorSize);
 
-        // After the last allocation: malloc may have grown (and detached) the memory.
-        final bd = _heap(_module);
-        bd.setFloat64(
-          reqPtr + _layout.reqRangeLimitFt,
-          request.rangeLimitFt,
-          Endian.little,
-        );
-        bd.setFloat64(
-          reqPtr + _layout.reqRangeStepFt,
-          request.rangeStepFt,
-          Endian.little,
-        );
-        bd.setFloat64(
-          reqPtr + _layout.reqTimeStep,
-          request.timeStep,
-          Endian.little,
-        );
-        bd.setInt32(
-          reqPtr + _layout.reqFilterFlags,
-          request.filterFlags,
-          Endian.little,
-        );
+    // After the last allocation: malloc may have grown (and detached) the memory.
+    final bd = _heap(_module);
+    bd.setFloat64(
+      reqPtr + _layout.reqRangeLimitFt,
+      request.rangeLimitFt,
+      Endian.little,
+    );
+    bd.setFloat64(
+      reqPtr + _layout.reqRangeStepFt,
+      request.rangeStepFt,
+      Endian.little,
+    );
+    bd.setFloat64(
+      reqPtr + _layout.reqTimeStep,
+      request.timeStep,
+      Endian.little,
+    );
+    bd.setInt32(
+      reqPtr + _layout.reqFilterFlags,
+      request.filterFlags,
+      Endian.little,
+    );
 
-        final st = _call(_module, 'BCLIBCFFI_integrate_shot', [
-          shotPtr,
-          reqPtr,
-          outRecordsPtrPtr,
-          outCountPtr,
-          outReasonPtr,
-          errPtr,
+    final st = _call(_module, 'BCLIBCFFI_integrate_shot', [
+      shotPtr,
+      reqPtr,
+      outRecordsPtrPtr,
+      outCountPtr,
+      outReasonPtr,
+      errPtr,
+    ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+
+    final bd2 = _heap(_module);
+    final recordsPtr = bd2.getInt32(outRecordsPtrPtr, Endian.little);
+    final count = bd2.getInt32(outCountPtr, Endian.little);
+    final reason = bd2.getInt32(outReasonPtr, Endian.little);
+
+    try {
+      final records = <BcTrajectoryData>[
+        for (var i = 0; i < count; i++)
+          _readTrajData(bd2, recordsPtr + i * _layout.trajSize, _layout),
+      ];
+      return BcHitResult(records, BcTerminationReason.fromValue(reason));
+    } finally {
+      if (count > 0) {
+        _module.callMethodVarArgs<JSAny?>('BCLIBCFFI_free_trajectory'.toJS, [
+          recordsPtr.toJS,
         ]);
-        if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
-
-        final bd2 = _heap(_module);
-        final recordsPtr = bd2.getInt32(outRecordsPtrPtr, Endian.little);
-        final count = bd2.getInt32(outCountPtr, Endian.little);
-        final reason = bd2.getInt32(outReasonPtr, Endian.little);
-
-        try {
-          final records = <BcTrajectoryData>[
-            for (var i = 0; i < count; i++)
-              _readTrajData(bd2, recordsPtr + i * _layout.trajSize, _layout),
-          ];
-          return BcHitResult(records, BcTerminationReason.fromValue(reason));
-        } finally {
-          if (count > 0) {
-            _module.callMethodVarArgs<JSAny?>(
-              'BCLIBCFFI_free_trajectory'.toJS,
-              [recordsPtr.toJS],
-            );
-          }
-        }
-      });
+      }
+    }
+  });
 
   @override
   BcInterception integrateAtShot(

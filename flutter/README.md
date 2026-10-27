@@ -1,76 +1,23 @@
-# bclibc_flutter
+# bclibc_flutter (deprecated)
 
-Flutter plugin wrapper for [`bclibc`](../dart) — bundles the native
-`bclibc` ballistics engine for Android/iOS/Linux/macOS/Windows and the
-wasm build for Flutter Web.
+This package is a thin compatibility shim. Everything it used to provide now
+lives in [`bclibc`](https://pub.dev/packages/bclibc), a single package for Dart,
+Flutter and the web: the native library is built from bundled sources by a build
+hook, and the wasm module for web is embedded.
 
-For a pure Dart project (no Flutter), depend on
-[`bclibc`](../dart) directly instead — see its README for the
-`dart run bclibc:build_native` native-build step.
-
-## Usage
+Replace
 
 ```yaml
 dependencies:
-  bclibc_flutter: ^0.1.0-beta.1
+  bclibc_flutter: ^1.0.0
 ```
 
-```dart
-import 'package:bclibc_flutter/bclibc.dart';
+with
 
-final calc = Calculator();       // synchronous, native FFI
-final asyncCalc = AsyncCalculator(); // off-isolate on native, wasm on web
+```yaml
+dependencies:
+  bclibc: ^2.0.0
 ```
 
-Everything exported by `package:bclibc/bclibc.dart` (calculator/unit/
-conditions/shot/trajectory types, the synchronous `Calculator`) is
-re-exported here, plus `AsyncCalculator`, which lives in this package
-because it needs a real web (wasm) implementation on Flutter Web.
-
-## Web / WebAssembly
-
-`bclibc`'s C ABI compiles to WebAssembly (`make wasm-zig` in `bclibc/`), and is consumed on web through `BcLibCWeb`
-(`lib/ffi/bclibc_ffi_web.dart`) using `dart:js_interop` directly against the
-same flat `BCLIBCFFI_*` exports the native binding uses — no Embind, no
-third-party FFI-on-web shim. Struct field offsets are never hardcoded on the
-Dart side: `BCLIBCFFI_get_layout()` computes them via `offsetof()`/`sizeof()`
-in whichever compiler built the wasm module, so the binding can't silently
-drift from the C struct layout if it changes.
-
-The compiled artifact (`assets/wasm/bclibc_ffi.wasm`: one bare module, no JS glue, no Emscripten,
-it imports nothing) ships with the package via `flutter.assets` in `pubspec.yaml` — `flutter build web` picks it
-up automatically, no extra setup needed in the consuming app.
-
-```dart
-import 'package:bclibc_flutter/bclibc.dart';
-
-// Works unmodified on web — AsyncCalculator picks the wasm engine
-// automatically when compiled for web.
-final calc = AsyncCalculator();
-final elev = await calc.barrelElevationForTarget(shot, Distance.meter(500));
-```
-
-bclibc never throws, so the module is built without C++ exceptions and runs on any browser with
-WebAssembly; `BCLIBCFFI_*` return the same error codes as the native library.
-
-To rebuild the wasm artifact from source (only needed if you're modifying
-`bclibc` itself; needs [uv](https://docs.astral.sh/uv/), which supplies zig):
-
-```bash
-uv run --with ziglang make build-wasm   # from the repo root
-```
-
-[wasi-sdk](https://github.com/WebAssembly/wasi-sdk/releases) also builds it (~1 MB):
-`make build-wasm WASM_TOOLCHAIN=wasi-sdk WASI_SDK_PATH=/path/to/wasi-sdk-34.0`.
-
-## Native platform builds
-
-Android/iOS/Linux/macOS/Windows all build `bclibc_ffi` from the vendored
-`bclibc/` git submodule (this package carries its own copy — see the repo
-root's `Makefile`'s `verify-bclibc` target, which checks it stays in sync
-with `dart/bclibc`'s copy) via each platform's native build system
-(CMake/Gradle/CocoaPods) — no prebuilt binaries, no network access needed at
-build time. `flutter build`/`flutter run` bundle the result automatically.
-
-See the [repo root README](../README.md) and [`bclibc`'s
-README](../dart/README.md) for the full API reference.
+and `package:bclibc_flutter/...` imports with `package:bclibc/...`. This shim only
+re-exports `package:bclibc/bclibc.dart` and `package:bclibc/unit.dart`.

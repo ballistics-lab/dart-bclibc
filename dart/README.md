@@ -12,9 +12,9 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
-A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships with the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source as a git submodule; no pre-built binaries required.
+A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source in the package; no pre-built binaries and no downloads.
 
-Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/Windows native bundling, plus Web/WebAssembly support), depend on [`bclibc_flutter`](../flutter) instead, which re-exports everything here.
+One package for Dart, Flutter and the web — no companion package. Native targets get the library from a build hook that compiles the bundled sources (`dart run`, `dart test`, `flutter build` and `flutter test` all work, offline, no setup); web targets run the engine as a wasm module embedded in the package.
 
 ---
 
@@ -34,8 +34,7 @@ Pure Dart — no Flutter dependency. For Flutter apps (Android/iOS/Linux/macOS/W
   - [Building](#building)
     - [Prerequisites](#prerequisites)
     - [Clone](#clone)
-    - [Build native library](#build-native-library)
-      - [Consuming apps: `flutter test` / `dart test`](#consuming-apps-flutter-test--dart-test)
+    - [Native library](#native-library-1)
     - [Regenerate FFI bindings](#regenerate-ffi-bindings)
     - [Run tests](#run-tests)
   - [Native library](#native-library)
@@ -137,20 +136,17 @@ detail now.
 
 ## Async API
 
-`AsyncCalculator` — the `Future`-returning counterpart to `Calculator` that
-also works on Flutter Web (wasm-backed) — lives in
-[`bclibc_flutter`](../flutter) instead of this package, since a real web
-implementation only makes sense inside a Flutter Web app (see that package's
-README for `Web / WebAssembly`). This package (`bclibc`) exposes the
-synchronous `Calculator` only; wrap it in your own `Isolate.run` if you want
-off-isolate execution in a plain Dart project:
+`AsyncCalculator` is the `Future`-returning counterpart to `Calculator` and the
+one to use on the web. On native targets each call runs on a fresh isolate; on
+the web the embedded wasm module is instantiated once (the only inherently async
+part) and every call after that is a plain synchronous call into it.
 
 ```dart
-import 'dart:isolate';
 import 'package:bclibc/bclibc.dart';
 
-final result = await Isolate.run(
-  () => Calculator().fire(shot: shot, trajectoryRange: Distance.meter(1000)),
+final result = await AsyncCalculator().fire(
+  shot: shot,
+  trajectoryRange: Distance.meter(1000),
 );
 ```
 
@@ -206,49 +202,14 @@ If you cloned without `--recurse-submodules`:
 git submodule update --init
 ```
 
-### Build native library
+### Native library
 
-From the repo root:
-
-```bash
-make build
-```
-
-Or directly, from `dart/`:
-
-```bash
-dart run bin/build_native.dart
-```
-
-Both build `libbclibc_ffi` via CMake and copy it into `dart/lib/native/<platform>/`
-— resolved automatically at runtime via a `package:` URI, independent of the
-caller's working directory. `BcLibC.open()` also checks the `BCLIBC_FFI_PATH`
-environment variable first, if set.
-
-> For Flutter apps the native library is instead built and bundled automatically by
-> `flutter build`, via `bclibc_flutter`'s platform `CMakeLists.txt`/Gradle/podspec
-> integration — no changes to the app's own platform config are required. See
-> [`bclibc_flutter`'s README](../flutter/README.md) for details.
-
-#### Consuming apps: `dart test`
-
-Apps that depend on `bclibc` (not `bclibc_flutter`) need to build the
-native library explicitly before testing/running, since plain `dart test`/`dart run`
-never run a platform build:
-
-```bash
-dart run bclibc:build_native
-```
-
-Wire it into your own test target, e.g. in a `Makefile`:
-
-```makefile
-test: build-bclibc
-	dart test
-
-build-bclibc:
-	dart run bclibc:build_native
-```
+There is no build step. `hook/build.dart` compiles `libbclibc_ffi` from the
+bundled `bclibc/` sources whenever Dart or Flutter needs it (`dart run`,
+`dart test`, `flutter run/build/test`), and the `@Native` bindings in
+`lib/ffi/bclibc_bindings.g.dart` resolve it through the resulting code asset —
+the same way in every mode. A C++ toolchain (clang/gcc, MSVC or Xcode) must be
+installed; nothing is downloaded.
 
 ### Regenerate FFI bindings
 
@@ -279,10 +240,9 @@ make test
 | macOS    | `libbclibc_ffi.dylib` |
 | Windows  | `bclibc_ffi.dll`      |
 
-Android, iOS, and WebAssembly are covered by
-[`bclibc_flutter`](../flutter) instead, since they only ever run inside
-a Flutter app. During development the path can be overridden via the
-`BCLIBC_FFI_PATH` environment variable.
+Android and iOS are built by the same hook (the Flutter tool drives it for
+those targets). WebAssembly uses the module embedded in
+`lib/ffi/bclibc_wasm.g.dart` instead, rebuilt with `make build-wasm`.
 
 ---
 

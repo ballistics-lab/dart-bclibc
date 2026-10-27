@@ -5,7 +5,7 @@
 //   dart test test/core/solver/ffi_test.dart
 //
 // Or point to a custom build:
-//   BCLIBC_FFI_PATH=/path/to/libbclibc_ffi.so dart test test/core/solver/ffi_test.dart
+//   dart test
 
 import 'package:bclibc/bclibc.dart';
 import 'package:test/test.dart';

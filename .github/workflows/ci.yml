@@ -26,11 +26,10 @@ on:
 # run for this workflow's own direct triggers just runs to completion
 # instead of being cancelled by a newer one, which is a fine trade-off here.
 jobs:
-  # ── every bclibc pin must agree: dart/bclibc and flutter/bclibc submodules
-  # (each package needs its own checkout — see Makefile's verify-bclibc
-  # comment), flutter/ CMake BCLIBC_VERSION, the prebuilt wasm asset and the
-  # CHANGELOGs. Needs no submodule checkout: tags are resolved via
-  # `git ls-remote`, and CI=true makes an unresolvable tag fatal. ────────────
+  # ── the bclibc pin must agree everywhere: the dart/bclibc submodule, the
+  # embedded wasm module and the CHANGELOG. Needs no submodule checkout: tags
+  # are resolved via `git ls-remote`, and CI=true makes an unresolvable tag
+  # fatal. ────────────────────────────────────────────────────────────────────
   verify-bclibc:
     name: Verify bclibc versions stay in sync
     runs-on: ubuntu-latest
@@ -39,7 +38,8 @@ jobs:
 
       - run: make verify-bclibc
 
-  # ── dart/ — pure Dart, no Flutter SDK needed ────────────────────────────────
+  # ── dart/ — the one real package: native (build hook), web (embedded wasm)
+  # and Flutter all use it as is. ───────────────────────────────────────────────
   analyze-dart:
     name: dart/ Analyze
     runs-on: ubuntu-latest
@@ -54,6 +54,8 @@ jobs:
       - run: dart pub get
       - run: dart analyze --fatal-infos
 
+  # The build hook (hook/build.dart) compiles the bundled sources, so a C++
+  # compiler is all that's needed -- no separate "build native" step.
   test-dart:
     name: dart/ Test (${{ matrix.os }})
     strategy:
@@ -75,11 +77,51 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake clang
+          sudo apt-get install -y clang
 
       - run: dart pub get
-      - run: dart run bin/build_native.dart
-      - run: dart test
+      - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+
+  # The wasm module is embedded in the package (lib/ffi/bclibc_wasm.g.dart):
+  # no asset to stage, no native build, no submodule checkout needed.
+  test-dart-web:
+    name: dart/ Test / web (Chrome)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dart
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      - run: dart pub get
+      - run: dart test -p chrome test/web/
+
+  # `flutter test` in a real Flutter project that depends on bclibc by path:
+  # the case the build hook exists for (a bundled-library lookup that works
+  # the same under `flutter test` as under `dart run`).
+  test-flutter:
+    name: Flutter consumer Test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+      - name: flutter test against bclibc
+        run: scripts/ci/flutter-smoke.sh
 
   publish-dry-run-dart:
     name: dart/ pub.dev dry-run
@@ -97,7 +139,7 @@ jobs:
       - run: dart pub get
       - run: dart pub publish --dry-run
 
-  # ── flutter/ — Flutter plugin wrapper ────────────────────────────────────────
+  # ── flutter/ — deprecated shim that only re-exports bclibc ───────────────────
   analyze-flutter:
     name: flutter/ Analyze
     runs-on: ubuntu-latest
@@ -107,107 +149,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
+      - uses: dart-lang/setup-dart@v1
 
-      - run: flutter pub get
-      - run: flutter analyze
-
-  # Exercises flutter/linux/CMakeLists.txt's Mode 3 (FetchContent) fallback
-  # directly — no bclibc submodule checked out, simulating a fresh `dart pub
-  # get`/`flutter pub get` of a git (not pub.dev-archive) dependency.
-  test-flutter-fetchcontent:
-    name: flutter/ Test / FetchContent (Linux)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-        # no submodules — simulates `dart pub get` of a git dep
-
-      - name: Install system deps
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang
-
-      - name: Build native library (Mode 3 — FetchContent)
-        run: |
-          cmake -S linux -B build/linux -DCMAKE_BUILD_TYPE=Debug -G Ninja
-          cmake --build build/linux --parallel
-
-      - run: test -f build/linux/_deps/bclibc-build/libbclibc_ffi.so
-
-  # Native (non-web) tests need a real libbclibc_ffi.so on disk — built here
-  # via dart/'s own build_native.dart (same artifact `dart run
-  # bclibc:build_native` produces for a plain Dart consumer) and pointed
-  # at via BCLIBC_FFI_PATH, since `flutter test`'s isolate/JIT context doesn't
-  # reliably resolve the package: URI strategy the way `flutter run`/`dart
-  # run` do.
-  test-flutter-native:
-    name: flutter/ Test / native (Linux)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
-
-      - name: Install system deps
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y cmake clang
-
-      - name: Build native library
-        working-directory: dart
-        run: |
-          dart pub get
-          dart run bin/build_native.dart
-
-      - working-directory: flutter
-        run: flutter pub get
-
-      - name: Run tests
-        working-directory: flutter
-        env:
-          BCLIBC_FFI_PATH: ${{ github.workspace }}/dart/lib/native/linux/libbclibc_ffi.so
-        run: flutter test test/async_calculator_test.dart
-
-  test-flutter-web:
-    name: flutter/ Test / web (Chrome)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter
-    steps:
-      - uses: actions/checkout@v7
-        # no submodules — this only needs the checked-in assets/wasm/
-        # artifact, not a native bclibc build
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
-
-      - run: flutter pub get
-
-      - name: Stage wasm test fixture
-        run: |
-          mkdir -p test/web/assets/packages/bclibc_flutter/assets/wasm
-          cp assets/wasm/bclibc_ffi.wasm \
-            test/web/assets/packages/bclibc_flutter/assets/wasm/
-
-      - name: Run web tests
-        run: dart test -p chrome test/web/
+      - run: dart pub get
+      - run: dart analyze --fatal-infos
 
   publish-dry-run-flutter:
     name: flutter/ pub.dev dry-run
@@ -217,14 +162,8 @@ jobs:
         working-directory: flutter
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          pub-cache: true
+      - uses: dart-lang/setup-dart@v1
 
-      - run: flutter pub get
+      - run: dart pub get
       - run: dart pub publish --dry-run

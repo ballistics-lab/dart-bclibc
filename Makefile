@@ -1,89 +1,58 @@
-.PHONY: build ffigen test clean format build-wasm sync-bclibc verify-bclibc install-hooks
+.PHONY: ffigen test web-test format build-wasm verify-bclibc install-hooks
 
-# Cross-platform helpers
-ifeq ($(OS),Windows_NT)
-  RM_DIR := cmake -E remove_directory
-else
-  RM_DIR := rm -rf
-endif
+# The native library needs no build step here: dart/hook/build.dart compiles
+# the bundled dart/bclibc sources whenever `dart run`/`dart test`/`flutter
+# build` needs it. Only a local clone has to initialize the submodule first.
+submodule:
+	git submodule update --init dart/bclibc
 
-BUILD_TYPE ?= Release
-
-# Build the native shared library via CMake (used by ffigen and dart tests)
-# and copy it into dart/lib/native/ — see dart/bin/build_native.dart.
-# For Flutter apps, the library is built automatically by `flutter build`
-# (via bclibc_flutter's platform CMake integration instead).
-# This target additionally initializes both bclibc submodules, which only
-# applies to a local clone of this repo.
-build:
-	git submodule update --init dart/bclibc flutter/bclibc
-	cd dart && dart pub get && dart run bin/build_native.dart $(BUILD_TYPE)
-
-# Re-generate Dart FFI bindings from the C header.
-# Requires LLVM/Clang:
+# Re-generate the @Native FFI bindings (dart/lib/ffi/bclibc_bindings.g.dart)
+# from the C header. Requires LLVM/Clang:
 #   Linux:   sudo apt install libclang-dev clang
 #   macOS:   brew install llvm
 #   Windows: winget install LLVM
-ffigen: build
-	cd dart && dart run ffigen --config ffigen.yaml
+ffigen: submodule
+	cd dart && dart pub get && dart run ffigen --config ffigen.yaml
 
-# Run dart/'s test suite (native library must be built first).
-test: build
-	cd dart && dart test
+# Native (dart:ffi) tests; the build hook compiles the library on the way.
+test: submodule
+	cd dart && dart pub get && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+
+# Web tests (dart:js_interop against the wasm module embedded in the package).
+web-test:
+	cd dart && dart pub get && dart test -p chrome test/web/
 
 format:
-	cd dart && dart format bin/ lib/
+	cd dart && dart format hook/ lib/ test/
 	cd flutter && dart format lib/
 
-# Rebuild Flutter Web's checked-in bclibc module from the pinned flutter/bclibc
-# submodule: one bare wasm (no Emscripten, no JS glue, no C++ exceptions -- bclibc never
-# throws) built with zig, which comes from the `ziglang` package:
+# Rebuild the wasm module embedded in the package (dart/lib/ffi/bclibc_wasm.g.dart)
+# from the pinned dart/bclibc submodule: one bare wasm (no Emscripten, no JS glue,
+# no C++ exceptions -- bclibc never throws) built with zig, which comes from the
+# `ziglang` package:
 #   uv run --with ziglang make build-wasm        (or zig on PATH, or ZIG=/path/to/zig)
 # wasi-sdk builds the same module, ~12x bigger:
 #   make build-wasm WASM_TOOLCHAIN=wasi-sdk WASI_SDK_PATH=/path/to/wasi-sdk-34.0
 # Run `make verify-bclibc` afterward (this target does) to ensure the embedded
-# version matches both gitlinks.
+# version matches the submodule.
 WASM_TOOLCHAIN ?= zig
 ZIG ?=
 WASI_SDK_PATH ?=
 
-build-wasm:
-	git submodule update --init flutter/bclibc
+build-wasm: submodule
 ifeq ($(WASM_TOOLCHAIN),zig)
-	$(MAKE) -C flutter/bclibc wasm-zig $(if $(ZIG),ZIG=$(ZIG))
-	cp flutter/bclibc/build/wasm-zig/bclibc_wasm.wasm flutter/assets/wasm/bclibc_ffi.wasm
+	$(MAKE) -C dart/bclibc wasm-zig $(if $(ZIG),ZIG=$(ZIG))
+	python3 scripts/embed_wasm.py dart/bclibc/build/wasm-zig/bclibc_wasm.wasm
 else
 	@test -n "$(WASI_SDK_PATH)" || { echo "set WASI_SDK_PATH=/path/to/wasi-sdk (https://github.com/WebAssembly/wasi-sdk/releases)"; exit 1; }
-	$(MAKE) -C flutter/bclibc wasm WASI_SDK_PATH=$(WASI_SDK_PATH)
-	cp flutter/bclibc/build/wasm/bclibc_wasm.wasm flutter/assets/wasm/bclibc_ffi.wasm
+	$(MAKE) -C dart/bclibc wasm WASI_SDK_PATH=$(WASI_SDK_PATH)
+	python3 scripts/embed_wasm.py dart/bclibc/build/wasm/bclibc_wasm.wasm
 endif
+	git add dart/lib/ffi/bclibc_wasm.g.dart
 	$(MAKE) verify-bclibc
 
-clean:
-	$(RM_DIR) dart/build
-	$(RM_DIR) dart/lib/native
-	$(RM_DIR) dart/lib/ffi/bclibc_bindings.g.dart
-
-# Sync BCLIBC_VERSION in flutter/'s platform CMakeLists.txt to the commit
-# dart/bclibc is currently pinned to, then re-pin flutter/bclibc to match.
-# Run after bumping the dart/bclibc submodule.
-sync-bclibc:
-	$(eval REF := $(shell git submodule status dart/bclibc | awk '{print $$1}' | tr -d '+-'))
-	@echo "Syncing BCLIBC_VERSION → $(REF)"
-	@sed -i 's/set(BCLIBC_VERSION "[^"]*")/set(BCLIBC_VERSION "$(REF)")/' \
-		flutter/linux/CMakeLists.txt flutter/windows/CMakeLists.txt flutter/src/CMakeLists.txt
-	cd flutter/bclibc && git fetch --quiet && git checkout --quiet $(REF)
-	git add flutter/bclibc
-
-# dart/bclibc and flutter/bclibc are two separate submodule checkouts of the
-# same upstream repo — each published package (bclibc,
-# bclibc_flutter) has to be self-contained, so there's no reliable way
-# to share one checkout between them (same reasoning as
-# ob-dump/scripts/ci/verify-lmdb-vendor.sh for its plain-vendored, non-
-# submodule native dependency). This just confirms they — and every other
-# bclibc pin (flutter/ CMake BCLIBC_VERSION, the prebuilt wasm asset, the
-# CHANGELOGs) — haven't drifted apart instead of trying to eliminate the
-# duplication. See scripts/ci/verify-bclibc.sh.
+# Confirms the single bclibc pin -- the dart/bclibc submodule, the embedded
+# wasm module and the CHANGELOG -- hasn't drifted. See scripts/ci/verify-bclibc.sh.
 verify-bclibc:
 	scripts/ci/verify-bclibc.sh
 

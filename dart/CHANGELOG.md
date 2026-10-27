@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This release merges `bclibc_flutter` into `bclibc`: one package now works on the Dart VM, in Flutter
+(Android/iOS/Linux/macOS/Windows) and on the web (Dart web and Flutter web), with a single bclibc pin.
+
+### Changed
+- **BREAKING:** the native library is built by a build hook (`hook/build.dart`, `package:hooks` +
+  `native_toolchain_c`) from the bundled `bclibc/` sources and loaded as a code asset. The FFI bindings
+  (`lib/ffi/bclibc_bindings.g.dart`) are regenerated in `@Native` mode (`ffi-native` in `ffigen.yaml`), so
+  `dart run`, `dart test`, `flutter run`, `flutter build` and `flutter test` resolve the library the same way,
+  with no build step, no network access and no `package_config.json` lookup. Requires Dart 3.11+ and a C++
+  toolchain on the build machine.
+- **BREAKING:** `BcLibCFFIBindings` (a class wrapping a `DynamicLibrary`) is gone; the bindings are top-level
+  `@Native` functions. `BcLibC.open()` is unchanged.
+- `AsyncCalculator` (from `bclibc_flutter`) and the web binding (`BcLibCWeb`) now live in this package, selected
+  by `dart.library.js_interop` in `bclibc.dart`. `BcLibCWeb.open()` uses the wasm module embedded in the package
+  by default; `wasmUrl` is only for a differently-built or differently-hosted module.
+- The wasm module is embedded as a base64 constant (`lib/ffi/bclibc_wasm.g.dart`, written by
+  `scripts/embed_wasm.py` from `make build-wasm`) instead of a Flutter asset, so it needs no asset bundling or
+  hosting and works the same in Dart web, Flutter web and `dart test -p chrome`.
+
+### Added
+- Web support in this package: `BcLibCWeb` and a web `AsyncCalculator`, no Flutter SDK required.
+- `scripts/ci/flutter-smoke.sh` and a CI job that run `flutter test` in a throwaway Flutter project depending
+  on this package.
+
+### Removed
+- **BREAKING:** `dart run bclibc:build_native` (`bin/build_native.dart`) and the `BCLIBC_FFI_PATH` environment
+  variable: the build hook replaces them.
+- The `flutter/bclibc` submodule and `sync-bclibc`: `dart/bclibc` is the single bclibc pin (`make verify-bclibc`
+  now checks that pin, the embedded wasm module and this changelog).
+- `bclibc_flutter`'s platform plugin code (CMake/Gradle/podspec); it is now a re-export shim, see its changelog.
+
 ## [1.0.1] - 2026-10-27
 
 ### Fixed

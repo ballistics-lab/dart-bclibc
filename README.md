@@ -4,46 +4,44 @@
 
 [![License]](LICENSE)
 [![Dart Pub Version]][dart pub package]
-[![Flutter Pub Version]][flutter pub package]
 [![powered by bclibc]][bclibc repo]
 
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
-Dart/Flutter bindings for the [bclibc](https://github.com/ballistics-lab/bclibc)
-ballistics engine — a high-performance 3-DOF + spin drift ballistic solver
-with RK4/Euler integration.
+A single package for **Dart, Flutter and the web**: the
+[bclibc](https://github.com/ballistics-lab/bclibc) ballistics engine — a
+high-performance 3-DOF + spin drift ballistic solver with RK4/Euler/adaptive
+integration.
 
-This is a monorepo with two published packages:
-
-- **[`dart/`](dart) — [`bclibc`](https://pub.dev/packages/bclibc)**:
-  pure Dart, no Flutter dependency. FFI bindings, calculator/unit/conditions
-  domain types. Works in any Dart project — CLI, server, or Flutter.
+- **[`dart/`](dart) — [`bclibc`](https://pub.dev/packages/bclibc)**: the package.
+  - *Native* (Dart VM, Flutter on Android/iOS/Linux/macOS/Windows): a
+    [build hook](dart/hook/build.dart) compiles the bundled C++ sources into a
+    native asset, so `dart run`, `dart test`, `flutter run`, `flutter build` and
+    `flutter test` all work with no extra build step and no network access.
+  - *Web* (Dart web and Flutter web): the engine runs as a wasm module
+    embedded in the package; nothing to bundle or serve.
+  - `AsyncCalculator` works on every platform.
 - **[`flutter/`](flutter) — [`bclibc_flutter`](https://pub.dev/packages/bclibc_flutter)**:
-  Flutter plugin wrapper. Bundles the native library for
-  Android/iOS/Linux/macOS/Windows and WebAssembly for Flutter Web, plus
-  `AsyncCalculator` (needs a real web implementation, only available inside
-  a Flutter app).
+  *deprecated.* A thin shim that only re-exports `bclibc`; depend on `bclibc`
+  directly.
 
-If you're building a plain Dart application, start with
-[`dart/README.md`](dart/README.md). If you're building a Flutter app, start
-with [`flutter/README.md`](flutter/README.md) — it re-exports everything
-from `bclibc` plus the Flutter-specific pieces.
+Start with [`dart/README.md`](dart/README.md).
 
 ## Building from source
 
 ```bash
 git clone --recurse-submodules https://github.com/ballistics-lab/dart-bclibc.git
 cd dart-bclibc
-make build   # builds dart/'s native library via CMake
-make test    # runs dart/'s test suite
+make test       # native tests (the build hook compiles the library)
+make web-test   # web tests in Chrome, against the embedded wasm
 ```
 
-The C++ engine ([bclibc](https://github.com/ballistics-lab/bclibc)) is
-vendored as a git submodule, checked out separately under both `dart/bclibc`
-and `flutter/bclibc` (each published package needs to be self-contained —
-see `make verify-bclibc`, which checks the two copies — plus flutter/'s
-CMake `BCLIBC_VERSION`, the prebuilt wasm asset and the CHANGELOGs — all pin
-the same bclibc commit; `make install-hooks` runs it as a pre-commit hook).
+The C++ engine ([bclibc](https://github.com/ballistics-lab/bclibc)) is vendored
+as a single git submodule, `dart/bclibc`. `make verify-bclibc` checks that
+every place that pins it — the submodule, the embedded wasm module
+(`dart/lib/ffi/bclibc_wasm.g.dart`) and the CHANGELOG — agrees on one commit;
+`make install-hooks` runs it as a pre-commit hook. After bumping the submodule,
+rebuild the wasm module with `uv run --with ziglang make build-wasm`.
 
 ## License
 
@@ -70,8 +68,6 @@ See [LICENSE](LICENSE) for the full text.
 
 [Dart Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
 [dart pub package]: https://pub.dev/packages/bclibc
-[Flutter Pub Version]: https://img.shields.io/pub/v/bclibc_flutter?logo=flutter&cacheSeconds=0
-[flutter pub package]: https://pub.dev/packages/bclibc_flutter
 
 [bclibc repo]: https://github.com/ballistics-lab/bclibc
 [powered by bclibc]:

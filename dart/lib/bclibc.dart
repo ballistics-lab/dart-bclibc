@@ -1,3 +1,15 @@
+// One package for Dart, Flutter and the web:
+//   native (dart:ffi)  -- BcLibC/Calculator over the library the build hook
+//                          compiles from the bundled sources;
+//   web (dart:js_interop) -- BcLibCWeb over the wasm module embedded in the
+//                          package (use AsyncCalculator).
+// AsyncCalculator works on both.
+export 'package:bclibc/ffi/bclibc_types.dart';
+export 'package:bclibc/ffi/bclibc_ffi.dart'
+    if (dart.library.js_interop) 'package:bclibc/ffi/bclibc_ffi_web.dart';
+export 'package:bclibc/ffi/bclibc_bindings.g.dart'
+    if (dart.library.js_interop) 'package:bclibc/ffi/bclibc_bindings_stub_web.dart';
+export 'package:bclibc/src/async_calculator.dart';
 export 'package:bclibc/src/calculator.dart'
     if (dart.library.js_interop) 'package:bclibc/src/calculator_stub_web.dart';
 export 'package:bclibc/src/conditions.dart';
@@ -9,7 +21,3 @@ export 'package:bclibc/src/shot.dart';
 export 'package:bclibc/src/trajectory_data.dart';
 export 'package:bclibc/src/unit.dart';
 export 'package:bclibc/src/vector.dart';
-export 'package:bclibc/ffi/bclibc_ffi.dart'
-    if (dart.library.js_interop) 'package:bclibc/ffi/bclibc_ffi_stub_web.dart';
-export 'package:bclibc/ffi/bclibc_bindings.g.dart'
-    if (dart.library.js_interop) 'package:bclibc/ffi/bclibc_bindings_stub_web.dart';
