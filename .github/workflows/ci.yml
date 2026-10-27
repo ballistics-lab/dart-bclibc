@@ -3,17 +3,21 @@ name: CI
 on:
   push:
     branches: [main]
+    # Only what a job actually reads. CHANGELOG.md and pubspec.yaml are the two
+    # files a release-prep commit changes, and release.yml refuses to publish
+    # a commit CI has not passed on -- so they must trigger CI. Other doc-only
+    # commits skip it (start it by hand with workflow_dispatch before tagging).
     paths: &ci-paths
       - "lib/**"
       - "hook/**"
       - "test/**"
       - "bclibc"
       - "pubspec.yaml"
-      - "ffigen.yaml"
       - "analysis_options.yaml"
       - "CHANGELOG.md"
       - "Makefile"
-      - "scripts/**"
+      - "scripts/ci/verify-bclibc.sh"
+      - "scripts/ci/flutter-smoke.sh"
       - ".github/workflows/ci.yml"
   pull_request:
     paths: *ci-paths
