@@ -76,7 +76,7 @@ jobs:
           sudo apt-get install -y clang
 
       - run: dart pub get --no-example
-      - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+      - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart test/hook_test.dart
 
       # BcLibC.open() has to throw when the library cannot be loaded (it used to
       # return fine and fail at the first calculation).

@@ -27,7 +27,7 @@ const _sources = [
   'src/ffi/bclibc_ffi.cpp',
 ];
 
-void main(List<String> args) async {
+Future<void> main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) return;
 
