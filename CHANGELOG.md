@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This release merges `bclibc_flutter` into `bclibc`: one package now works on the Dart VM, in Flutter
 (Android/iOS/Linux/macOS/Windows) and on the web (Dart web and Flutter web), with a single bclibc pin.
 
+**Migrating from `bclibc_flutter`:** depend on `bclibc: ^2.0.0-alpha.1` instead and replace
+`package:bclibc_flutter/...` imports with `package:bclibc/...` (`bclibc.dart` and `unit.dart` are unchanged).
+No platform setup is needed: the native library is built by the package itself.
+
 ### Changed
 - **BREAKING:** the native library is built by a build hook (`hook/build.dart`, `package:hooks` +
   `native_toolchain_c`) from the bundled `bclibc/` sources and loaded as a code asset. The FFI bindings
@@ -27,19 +31,30 @@ This release merges `bclibc_flutter` into `bclibc`: one package now works on the
 - The wasm module is embedded as a base64 constant (`lib/ffi/bclibc_wasm.g.dart`, written by
   `scripts/embed_wasm.py` from `make build-wasm`) instead of a Flutter asset, so it needs no asset bundling or
   hosting and works the same in Dart web, Flutter web and `dart test -p chrome`.
+- Repository layout: the package lives at the repository root (it was in `dart/`) and the bclibc submodule is
+  `bclibc/` (it was `dart/bclibc`). A `.pubignore` keeps `.github/`, `scripts/`, `Makefile` and the submodule's
+  tests out of the pub.dev archive.
+- Dependencies: `hooks`, `code_assets`, `native_toolchain_c` and `web` added, `path` dropped (it only served the
+  removed library loader).
+- CI and release: every CI job now runs on the single package (`Analyze`, `Test`, `Test / web (Chrome)`,
+  `Test / Flutter consumer (Linux)`, `pub.dev dry-run`). Tests are no longer re-run for a release tag:
+  `release.yml` requires a successful `ci.yml` run on the tagged commit instead (`ci.yml` can be started
+  manually with `workflow_dispatch`), checks `pubspec.yaml` and this changelog, and publishes only `bclibc`.
+  `scripts/ci/prepare_release.py` and `make verify-bclibc` follow the new layout.
 
 ### Added
 - Web support in this package: `BcLibCWeb` and a web `AsyncCalculator`, no Flutter SDK required.
 - `scripts/ci/flutter-smoke.sh` and a CI job that run `flutter test` in a throwaway Flutter project depending
   on this package.
+- `make web-test` (web tests in Chrome) and `make submodule`.
 
 ### Removed
 - **BREAKING:** `dart run bclibc:build_native` (`bin/build_native.dart`) and the `BCLIBC_FFI_PATH` environment
   variable: the build hook replaces them.
+- The `bclibc_flutter` package and its platform plugin code (CMake/Gradle/podspec): it is no longer built or
+  released from this repository (the last published version is 1.0.1).
 - The `flutter/bclibc` submodule and `sync-bclibc`: `bclibc/` is the single bclibc pin (`make verify-bclibc`
   now checks that pin, the embedded wasm module and this changelog).
-- The `bclibc_flutter` package and its platform plugin code (CMake/Gradle/podspec) are removed from this repository; depend on `bclibc` directly (the last published `bclibc_flutter` is 1.0.1).
-- The `dart/` and `flutter/` directories: the package now lives at the repository root, and the bclibc submodule is `bclibc/`.
 
 ## [1.0.1] - 2026-10-27
 
