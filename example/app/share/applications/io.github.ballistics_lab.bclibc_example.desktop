@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=bclibc example
+Comment=Solves a shot with the bclibc ballistics engine
+Exec=bclibc_example
+Icon=io.github.ballistics_lab.bclibc_example
+Type=Application
+Categories=Utility;

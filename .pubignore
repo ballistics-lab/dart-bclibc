@@ -13,3 +13,8 @@ bclibc/tests/
 bclibc/tiny_bclibc/
 bclibc/build/
 bclibc/.github/
+
+# example/ stays (pub.dev shows it); its Flatpak packaging is CI-only.
+example/flatpak/
+example/app/
+example/flutpak.yaml

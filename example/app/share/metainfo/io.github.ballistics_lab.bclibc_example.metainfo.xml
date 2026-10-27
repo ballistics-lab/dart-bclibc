@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ballistics_lab.bclibc_example</id>
+  <name>bclibc example</name>
+  <summary>Solves a shot with the bclibc ballistics engine</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LGPL-3.0-only</project_license>
+  <description>
+    <p>
+      A small Flutter app used to check that the bclibc package, which builds
+      its native library with a Dart build hook, works inside an offline
+      Flatpak build.
+    </p>
+  </description>
+  <developer id="io.github.ballistics_lab">
+    <name>ballistics-lab</name>
+  </developer>
+  <url type="homepage">https://github.com/ballistics-lab/dart-bclibc</url>
+  <launchable type="desktop-id">io.github.ballistics_lab.bclibc_example.desktop</launchable>
+</component>

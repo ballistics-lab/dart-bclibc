@@ -1,0 +1,140 @@
+name: Flatpak
+
+# Builds example/ (a Flutter app that depends on bclibc by path) as an OFFLINE
+# Flatpak with flutpak, the way ebalistyka is built, then runs it inside the
+# sandbox. This is the end-to-end check that the package's build hook compiles
+# the bundled C++ sources with no network access, which an ordinary
+# `flutter build` on a CI runner cannot show. See example/flutpak.yaml.
+
+on:
+  pull_request:
+    paths:
+      - "lib/**"
+      - "hook/**"
+      - "bclibc"
+      - "pubspec.yaml"
+      - "example/**"
+      - ".github/workflows/flatpak.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: flatpak-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  APP_ID: io.github.ballistics_lab.bclibc_example
+
+jobs:
+  generate:
+    name: Generate Flatpak manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Flutter
+        uses: o-murphy/flutpak/.github/actions/flutter@v0.8.6
+        with:
+          flutter-version: 3.47.8
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: example
+
+      - name: Generate manifest and validate
+        uses: o-murphy/flutpak/.github/actions/generate@v0.8.6
+        with:
+          config: example/flutpak.yaml
+          commit: ${{ github.event.pull_request.head.sha || github.sha }}
+          artifact-path: example/flatpak/generated/
+          artifact-name: flutpak-artifacts
+
+  build:
+    name: flatpak-${{ matrix.arch }}
+    needs: generate
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    timeout-minutes: 90
+    steps:
+      - name: Set build metadata
+        id: meta
+        shell: bash
+        env:
+          MATRIX_ARCH: ${{ matrix.arch }}
+        run: |
+          case "$MATRIX_ARCH" in
+            arm64) arch_suffix="aarch64" ;;
+            *)     arch_suffix="x86_64"  ;;
+          esac
+          echo "arch_suffix=$arch_suffix" >> "$GITHUB_OUTPUT"
+          echo "bundle=bclibc_example_linux_${arch_suffix}.flatpak" >> "$GITHUB_OUTPUT"
+
+      - name: Download generated Flatpak sources
+        uses: actions/download-artifact@v8
+        with:
+          name: flutpak-artifacts
+          path: flatpak/generated
+
+      - name: Cache Flatpak installation (org.flatpak.Builder + runtimes)
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-builder-25.08-llvm20-${{ runner.arch }}-v1
+
+      - name: Cache flatpak-builder downloads
+        uses: actions/cache@v6
+        with:
+          path: .flatpak-builder/downloads
+          key: flatpak-dl-${{ steps.meta.outputs.arch_suffix }}-${{ hashFiles('flatpak/generated/*.yml', 'flatpak/generated/pubspec-sources.json') }}
+          restore-keys: flatpak-dl-${{ steps.meta.outputs.arch_suffix }}-
+
+      - name: Build Flatpak
+        id: build-flatpak
+        uses: o-murphy/flutpak/.github/actions/build-flatpak@v0.8.6
+        with:
+          manifest: flatpak/generated/${{ env.APP_ID }}.yml
+          app-id: ${{ env.APP_ID }}
+          arch: ${{ steps.meta.outputs.arch_suffix }}
+          bundle: ${{ steps.meta.outputs.bundle }}
+          artifact-name: bclibc-example-flatpak-${{ steps.meta.outputs.arch_suffix }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 2
+
+      # The library the hook compiled inside the sandbox must be in the bundle
+      # and loadable, and a headless run of the app must solve a shot.
+      - name: Smoke test the installed Flatpak
+        shell: bash
+        env:
+          BUNDLE: ${{ steps.meta.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y xvfb
+          dbus-run-session flatpak install --user -y --bundle "$BUNDLE"
+
+          SO=$(find "$HOME/.local/share/flatpak/app/$APP_ID" -name "libbclibc_ffi.so" | head -1)
+          if [ -z "$SO" ] || [ ! -f "$SO" ]; then
+            echo "ERROR: libbclibc_ffi.so not found in the installed Flatpak"
+            exit 1
+          fi
+          file -L "$SO" | grep -q ELF || { echo "ERROR: not an ELF file: $(file -L "$SO")"; exit 1; }
+          echo "✓ libbclibc_ffi.so: $(file -L "$SO" | cut -d: -f2- | xargs)"
+
+          set +e
+          OUT=$(timeout 120 xvfb-run --auto-servernum dbus-run-session \
+                flatpak run --env=BCLIBC_EXAMPLE_SELFTEST=1 "$APP_ID" 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUT"
+          if [ "$CODE" -ne 0 ] || ! echo "$OUT" | grep -q "bclibc self-test ok"; then
+            echo "ERROR: the self-test did not pass inside the sandbox (exit $CODE)"
+            exit 1
+          fi
+          echo "✓ bclibc solved a shot inside the Flatpak sandbox"
