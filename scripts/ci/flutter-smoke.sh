@@ -3,7 +3,7 @@
 # path and references the engine) for one target, then checks that the library
 # the build hook compiled actually ended up in the build output.
 #
-#   scripts/ci/flutter-smoke.sh [test|linux|windows|android|web]
+#   scripts/ci/flutter-smoke.sh [test|linux|macos|windows|android|web]
 #
 # `test` runs `flutter test` (the case that used to need a hand-built library
 # and a package: URI lookup); the others run the release `flutter build` of that
@@ -53,6 +53,18 @@ case "$TARGET" in
     selftest ok "$BUNDLE/bclibc_example"
     rm -f "$BUNDLE"/lib/libbclibc_ffi.so
     selftest fail "$BUNDLE/bclibc_example"
+    ;;
+  macos)
+    # example/ has no macos/ runner checked in; generate it (keeps lib/ and
+    # pubspec.yaml as they are).
+    [ -d macos ] || flutter create --platforms=macos --project-name bclibc_example .
+    flutter pub get
+    flutter build macos --release
+    APP="$(find build/macos -type d -name 'bclibc_example.app' | head -1)"
+    have "bclibc_ffi library inside the .app" find "$APP" -name '*bclibc_ffi*'
+    selftest ok "$APP/Contents/MacOS/bclibc_example"
+    find "$APP" -name '*bclibc_ffi*' -exec rm -rf {} +
+    selftest fail "$APP/Contents/MacOS/bclibc_example"
     ;;
   windows)
     flutter build windows --release
