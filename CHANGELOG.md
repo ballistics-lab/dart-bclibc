@@ -18,7 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build hook checks the library it just built, so a bad build fails the **build** instead of the app at startup:
   the file must exist, contain every `BCLIBCFFI_*` function the bindings call (catches a missing export, e.g. a
   symbol dropped by the Linux version script or not exported from the Windows DLL), and, when the target is the
-  machine doing the build, actually load and answer `BCLIBCFFI_get_version()`.
+  machine doing the build, actually load and answer `BCLIBCFFI_get_version()`. On that machine every symbol is
+  looked up in the loaded library exactly as the runtime will do it; for cross-compiled targets (Android, iOS) the
+  names are searched for in the binary, which is a weaker check.
+- Android: the library is linked with `-Wl,-z,max-page-size=16384` (16 KB page alignment, required by Google Play for
+  64-bit libraries), and CI checks every `LOAD` segment of the arm64-v8a and x86_64 libraries in the APK.
 - Stricter CI: the built example is run on Linux and Windows (it must load the engine and solve a shot, and must
   fail fast once the library is removed from the bundle), `scripts/ci/missing-library-check.sh` does the same for a
   plain Dart executable, and an Android emulator job loads the library on a device (`example/integration_test`).

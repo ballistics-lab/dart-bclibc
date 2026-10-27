@@ -68,6 +68,16 @@ case "$TARGET" in
     for abi in arm64-v8a armeabi-v7a x86_64; do
       have "lib/$abi/libbclibc_ffi.so in the APK" unzip -l "$APK" "lib/$abi/libbclibc_ffi.so"
     done
+    # Google Play: 64-bit libraries must be 16 KB page aligned (every LOAD
+    # segment), or the app is rejected / fails on 16 KB devices.
+    SO="$(mktemp -d)"
+    for abi in arm64-v8a x86_64; do
+      unzip -p "$APK" "lib/$abi/libbclibc_ffi.so" > "$SO/$abi.so"
+      for align in $(readelf -lW "$SO/$abi.so" | awk '$1=="LOAD" {print $NF}'); do
+        [ $((align)) -ge 16384 ] || { echo "MISSING: $abi LOAD segment aligned to $align, need >= 0x4000 (16 KB)" >&2; exit 1; }
+      done
+      echo "OK: $abi libbclibc_ffi.so is 16 KB page aligned"
+    done
     ;;
   web)
     flutter build web --release

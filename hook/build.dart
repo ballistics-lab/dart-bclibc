@@ -76,6 +76,9 @@ void main(List<String> args) async {
           '-ffunction-sections',
           '-fdata-sections',
         ],
+        // Google Play requires 64-bit native libraries to be aligned to 16 KB
+        // pages (apps targeting Android 15+); older NDKs default to 4 KB.
+        if (os == OS.android) '-Wl,-z,max-page-size=16384',
         if (os == OS.linux || os == OS.android) ...[
           '-Wl,--gc-sections',
           '-Wl,--version-script=${root.resolve('src/ffi/bclibc_ffi.version').toFilePath()}',
@@ -126,17 +129,19 @@ String _versionHeader(String version) {
 }
 
 /// Checks the library that was just built, so that a build which produced an
-/// unusable library fails here instead of in the user's app at startup:
+/// unusable library fails here instead of in the user's app at startup.
 ///
-///  * it exists;
-///  * it contains every `BCLIBCFFI_*` function the `@Native` bindings call
-///    (catches a missing export, e.g. a symbol dropped by the Linux version
-///    script or not `__declspec(dllexport)`-ed on Windows, which would otherwise
-///    only surface as "Couldn't resolve native function" at the first call);
-///  * when the target is the machine doing the build, it actually loads and
-///    `BCLIBCFFI_get_version()` returns (catches an unresolved dependency, a
-///    wrong architecture, ...). Cross-compiled targets (Android, iOS) get the
-///    first two checks only.
+/// The required symbols are every `BCLIBCFFI_*` function the `@Native` bindings
+/// call (read from lib/ffi/bclibc_bindings.g.dart).
+///
+///  * When the target is the machine doing the build, the library is actually
+///    loaded and every required symbol is looked up exactly like the runtime
+///    will do it (this catches a symbol dropped by the Linux version script or
+///    not exported from the Windows DLL, an unresolved dependency, a wrong
+///    architecture), and `BCLIBCFFI_get_version()` is called.
+///  * Cross-compiled targets (Android, iOS) cannot be loaded here; the names
+///    are searched for in the binary instead. That is a weaker check: a symbol
+///    that is present but hidden is not detected.
 Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
   final config = input.config.code;
   final fileName = os.libraryFileName('bclibc_ffi', DynamicLoadingBundled());
@@ -163,30 +168,24 @@ Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
       'lib/ffi/bclibc_bindings.g.dart.',
     );
   }
-  final binary = latin1.decode(lib.readAsBytesSync(), allowInvalid: true);
-  final missing = [
-    for (final name in required)
-      if (!binary.contains(name)) name,
-  ];
-  if (missing.isNotEmpty) {
-    throw StateError(
-      'bclibc build check: $fileName does not contain '
-      '${missing.length} function(s) the bindings call: '
-      '${missing.take(8).join(', ')}${missing.length > 8 ? ', ...' : ''}. '
-      'Check the export list (bclibc/src/ffi/bclibc_ffi.version, '
-      'BCLIBC_FFI_EXPORT).',
-    );
-  }
 
+  final List<String> missing;
   if (os == OS.current && config.targetArchitecture == Architecture.current) {
     try {
-      final get = DynamicLibrary.open(lib.path)
-          .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
-            'BCLIBCFFI_get_version',
-          );
-      final version = get().toDartString();
-      if (version.isEmpty) {
-        throw StateError('BCLIBCFFI_get_version() returned an empty string');
+      final dl = DynamicLibrary.open(lib.path);
+      missing = [
+        for (final name in required)
+          if (!dl.providesSymbol(name)) name,
+      ];
+      if (missing.isEmpty) {
+        final version = dl
+            .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+              'BCLIBCFFI_get_version',
+            )()
+            .toDartString();
+        if (version.isEmpty) {
+          throw StateError('BCLIBCFFI_get_version() returned an empty string');
+        }
       }
     } on Object catch (e) {
       throw StateError(
@@ -194,5 +193,20 @@ Future<void> _verifyBuiltLibrary(BuildInput input, OS os) async {
         'loaded and called on this machine: $e',
       );
     }
+  } else {
+    final binary = latin1.decode(lib.readAsBytesSync(), allowInvalid: true);
+    missing = [
+      for (final name in required)
+        if (!binary.contains(name)) name,
+    ];
+  }
+  if (missing.isNotEmpty) {
+    throw StateError(
+      'bclibc build check: $fileName does not export '
+      '${missing.length} function(s) the bindings call: '
+      '${missing.take(8).join(', ')}${missing.length > 8 ? ', ...' : ''}. '
+      'Check the export list (bclibc/src/ffi/bclibc_ffi.version, '
+      'BCLIBC_FFI_EXPORT).',
+    );
   }
 }
