@@ -83,7 +83,9 @@ jobs:
       - run: dart test --exclude-tags=browser test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
 
   # The wasm module is embedded in the package (lib/ffi/bclibc_wasm.g.dart):
-  # no asset to stage, no native build, no submodule checkout needed.
+  # no asset to stage. The submodule is still needed: `dart test` runs the
+  # package's build hook even for `-p chrome`, and the hook compiles
+  # dart/bclibc's sources.
   test-dart-web:
     name: dart/ Test / web (Chrome)
     runs-on: ubuntu-latest
@@ -92,8 +94,15 @@ jobs:
         working-directory: dart
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - uses: dart-lang/setup-dart@v1
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y clang
 
       - run: dart pub get
       - run: dart test -p chrome test/web/
