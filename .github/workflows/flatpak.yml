@@ -14,11 +14,11 @@ on:
       bclibc_version:
         description: >-
           Build against this PUBLISHED bclibc version from pub.dev instead of
-          the path dependency (../), e.g. 2.0.0-alpha.1. Proves the offline
+          the path dependency (../), e.g. 2.0.0-beta.1. Proves the offline
           build works from the package archive alone, independent of the
           checked-out sources. Empty: use the path dependency.
         type: string
-        default: "2.0.0-alpha.1"
+        default: "2.0.0-beta.1"
 
 concurrency:
   group: flatpak-${{ github.ref }}
