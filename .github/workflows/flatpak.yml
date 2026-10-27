@@ -7,14 +7,8 @@ name: Flatpak
 # `flutter build` on a CI runner cannot show. See example/flutpak.yaml.
 
 on:
-  pull_request:
-    paths:
-      - "lib/**"
-      - "hook/**"
-      - "bclibc"
-      - "pubspec.yaml"
-      - "example/**"
-      - ".github/workflows/flatpak.yml"
+  # Manual only (Actions -> Flatpak -> Run workflow): the build takes a long
+  # time, so it is run on demand, e.g. after publishing a pre-release.
   workflow_dispatch:
 
 concurrency:
@@ -50,7 +44,7 @@ jobs:
         uses: o-murphy/flutpak/.github/actions/generate@v0.8.6
         with:
           config: example/flutpak.yaml
-          commit: ${{ github.event.pull_request.head.sha || github.sha }}
+          commit: ${{ github.sha }}
           artifact-path: example/flatpak/generated/
           artifact-name: flutpak-artifacts
 
