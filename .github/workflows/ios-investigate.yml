@@ -16,6 +16,9 @@ permissions:
 
 jobs:
   ios:
+    # Parked: two samples passed (3m40s / 7m45s for the test step). Enable with
+    # workflow_dispatch to get more.
+    if: github.event_name == 'workflow_dispatch'
     name: iOS #${{ matrix.run }}
     runs-on: macos-latest
     timeout-minutes: 35
@@ -152,22 +155,31 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           find "$APP" -name '*bclibc_ffi*' | head -3
 
-      - name: Run the self-test in the simulator (60 s watchdog)
+      - name: Run the self-test in the simulator (180 s watchdog, diagnostics)
         env:
           UDID: ${{ steps.sim.outputs.UDID }}
           BID: ${{ steps.sim.outputs.BID }}
         run: |
           set +e
           LOG="$RUNNER_TEMP/selftest.log"; : > "$LOG"
+          START=$(date +%s)
           SIMCTL_CHILD_BCLIBC_EXAMPLE_SELFTEST=1 \
             xcrun simctl launch --console --terminate-running-process "$UDID" "$BID" > "$LOG" 2>&1 &
           PID=$!
-          for i in $(seq 1 60); do
-            kill -0 "$PID" 2>/dev/null || break
+          for i in $(seq 1 180); do
             grep -q "bclibc self-test" "$LOG" && break
+            if ! kill -0 "$PID" 2>/dev/null; then echo "simctl launch ended after $(( $(date +%s) - START )) s"; break; fi
+            [ $((i % 30)) -eq 0 ] && echo "[$i s] waiting; app running: $(xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -c "$BID")"
             sleep 1
           done
-          kill "$PID" 2>/dev/null; xcrun simctl terminate "$UDID" "$BID" 2>/dev/null
-          echo "--- app output"; cat "$LOG"; echo "--- end"
+          kill "$PID" 2>/dev/null
+          echo "--- app output (after $(( $(date +%s) - START )) s)"; cat "$LOG"; echo "--- end"
           if grep -q "^bclibc self-test ok" "$LOG"; then echo "OK: the library loaded and computed on the iOS simulator"; exit 0; fi
-          echo "FAILED: no 'bclibc self-test ok' within 60 s"; exit 1
+          echo "=== diagnostics"
+          echo "--- is the app still running?"; xcrun simctl spawn "$UDID" launchctl list 2>&1 | grep -i "ballisticslab\|Runner" | head
+          echo "--- simulator log of the app (last 5 min)"
+          xcrun simctl spawn "$UDID" log show --last 5m --info --debug --style compact \
+            --predicate 'process == "Runner" OR eventMessage CONTAINS[c] "bclibc" OR eventMessage CONTAINS[c] "dyld"' 2>&1 | tail -80 | cut -c1-260
+          echo "--- crash reports"; ls -la ~/Library/Logs/DiagnosticReports 2>/dev/null | tail -5
+          xcrun simctl terminate "$UDID" "$BID" 2>/dev/null
+          echo "FAILED: no 'bclibc self-test ok' within 180 s"; exit 1
