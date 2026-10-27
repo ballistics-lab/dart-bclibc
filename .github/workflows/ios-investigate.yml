@@ -101,3 +101,73 @@ jobs:
           kill "$TAIL" 2>/dev/null
           echo "flutter test exit code: $CODE  after $(( $(date +%s) - START )) s"
           exit "$CODE"
+
+  # The same check as the macOS/Linux/Windows self-test, without `flutter test`:
+  # build the example for the simulator, install it, start it with
+  # BCLIBC_EXAMPLE_SELFTEST=1 and read its output. No VM-service handshake between
+  # the Flutter tool and the app (the step `flutter test integration_test` can
+  # wait on forever), so the only thing under test is: does the library load and
+  # compute on iOS.
+  selftest:
+    name: simctl self-test #${{ matrix.run }}
+    runs-on: macos-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2]
+    defaults:
+      run:
+        shell: bash
+        working-directory: example
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Build for the simulator
+        run: |
+          set -euo pipefail
+          [ -d ios ] || flutter create --platforms=ios --project-name bclibc_example .
+          flutter pub get
+          flutter build ios --simulator --debug
+          test -d build/ios/iphonesimulator/Runner.app
+
+      - name: Boot a simulator and install the app
+        id: sim
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available | grep -m1 iPhone | grep -oE '[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}')"
+          APP=build/ios/iphonesimulator/Runner.app
+          BID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+          echo "UDID=$UDID" >> "$GITHUB_OUTPUT"; echo "BID=$BID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          find "$APP" -name '*bclibc_ffi*' | head -3
+
+      - name: Run the self-test in the simulator (60 s watchdog)
+        env:
+          UDID: ${{ steps.sim.outputs.UDID }}
+          BID: ${{ steps.sim.outputs.BID }}
+        run: |
+          set +e
+          LOG="$RUNNER_TEMP/selftest.log"; : > "$LOG"
+          SIMCTL_CHILD_BCLIBC_EXAMPLE_SELFTEST=1 \
+            xcrun simctl launch --console --terminate-running-process "$UDID" "$BID" > "$LOG" 2>&1 &
+          PID=$!
+          for i in $(seq 1 60); do
+            kill -0 "$PID" 2>/dev/null || break
+            grep -q "bclibc self-test" "$LOG" && break
+            sleep 1
+          done
+          kill "$PID" 2>/dev/null; xcrun simctl terminate "$UDID" "$BID" 2>/dev/null
+          echo "--- app output"; cat "$LOG"; echo "--- end"
+          if grep -q "^bclibc self-test ok" "$LOG"; then echo "OK: the library loaded and computed on the iOS simulator"; exit 0; fi
+          echo "FAILED: no 'bclibc self-test ok' within 60 s"; exit 1
