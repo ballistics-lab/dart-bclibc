@@ -98,12 +98,27 @@ jobs:
       - run: dart pub get
       - run: dart test -p chrome test/web/
 
-  # `flutter test` in a real Flutter project that depends on bclibc by path:
-  # the case the build hook exists for (a bundled-library lookup that works
-  # the same under `flutter test` as under `dart run`).
-  test-flutter:
-    name: Test / Flutter consumer (Linux)
-    runs-on: ubuntu-latest
+  # A throwaway Flutter app that depends on bclibc by path, built for every
+  # target ebalistyka ships (Linux, Windows, Android, web) plus `flutter test`
+  # (the case the build hook exists for: a bundled-library lookup that works
+  # the same under `flutter test` as under `dart run`). Each build step then
+  # checks the library the hook compiled is in the build output.
+  # See scripts/ci/flutter-smoke.sh.
+  flutter-smoke:
+    name: Flutter ${{ matrix.target }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: test, os: ubuntu-latest }
+          - { target: linux, os: ubuntu-latest }
+          - { target: android, os: ubuntu-latest }
+          - { target: web, os: ubuntu-latest }
+          - { target: windows, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
         with:
@@ -116,12 +131,13 @@ jobs:
           pub-cache: true
 
       - name: Install system deps
+        if: matrix.os == 'ubuntu-latest' && (matrix.target == 'test' || matrix.target == 'linux')
         run: |
           sudo apt-get update -q
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
-      - name: flutter test against bclibc
-        run: scripts/ci/flutter-smoke.sh
+      - name: ${{ matrix.target }}
+        run: scripts/ci/flutter-smoke.sh ${{ matrix.target }}
 
   publish-dry-run:
     name: pub.dev dry-run
