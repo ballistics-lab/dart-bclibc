@@ -1,5 +1,5 @@
 // AUTO-GENERATED – do not edit.
-// Run: dart run ffigen --config ffigen.yaml
+// Run: dart run tool/ffigen.dart
 //
 // ignore_for_file: type=lint
 // ignore_for_file: return_of_invalid_type
