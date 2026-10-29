@@ -12,7 +12,7 @@ submodule:
 #   macOS:   brew install llvm
 #   Windows: winget install LLVM
 ffigen: submodule
-	dart pub get --no-example && dart run ffigen --config ffigen.yaml
+	dart pub get --no-example && dart run tool/ffigen.dart
 
 # Native (dart:ffi) tests; the build hook compiles the library on the way.
 test: submodule
