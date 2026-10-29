@@ -1,4 +1,4 @@
-.PHONY: submodule ffigen test web-test format build-wasm verify-bclibc install-hooks
+.PHONY: submodule ffigen test web-test py-test format build-wasm verify-bclibc install-hooks
 
 # The native library needs no build step here: hook/build.dart compiles
 # the bundled bclibc/ sources whenever `dart run`/`dart test`/`flutter
@@ -17,6 +17,15 @@ ffigen: submodule
 # Native (dart:ffi) tests; the build hook compiles the library on the way.
 test: submodule
 	dart pub get --no-example && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+
+# py-ballisticcalc's own test suite against this package, once per integration method
+# (rk4 euler verlet rkck dopri tsitouras), through tool/py_bridge. Needs python >= 3.11 with
+# `pip install -e py-ballisticcalc -e python pytest`; narrow it with PY_METHODS="rk4 dopri".
+PY_METHODS ?= rk4 euler verlet rkck dopri tsitouras
+py-test: submodule
+	git submodule update --init py-ballisticcalc
+	dart pub get --no-example
+	set -e; for m in $(PY_METHODS); do python -m pytest py-ballisticcalc/tests --engine=dart_bclibc+$$m -q; done
 
 # Web tests (dart:js_interop against the wasm module embedded in the package).
 web-test:

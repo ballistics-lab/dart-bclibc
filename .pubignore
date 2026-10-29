@@ -3,6 +3,9 @@
 .github/
 scripts/
 Makefile
+# py-ballisticcalc's test suite driven against this package (python/ engines + tool/py_bridge)
+tool/
+python/
 .dart_tool/
 build/
 coverage/
