@@ -1,0 +1,177 @@
+name: Coverage
+
+# Same shape as py-ballisticcalc's coverage.yml: every test run writes its own raw coverage file, a final job
+# merges them (`format_coverage` over one directory is Dart's `coverage combine`) and uploads the result.
+#
+#   native       the package's own `dart test` suites
+#   py-suite     py-ballisticcalc's test suite driven through tool/py_bridge, once per BcIntegrationMethod
+#                (`--engine=dart_bclibc+<method>`, see python/ and scripts/ci/py-suite-coverage.sh)
+#   merge        all of the above -> lcov.info + HTML report -> Codecov
+#
+# Only Dart sources are measured: bclibc's C++ is compiled by the build hook and is not line-traced here.
+
+on:
+  push:
+    branches: [main]
+    paths: &coverage-paths
+      - "lib/**"
+      - "hook/**"
+      - "test/**"
+      - "tool/**"
+      - "python/**"
+      - "bclibc"
+      - "py-ballisticcalc"
+      - "pubspec.yaml"
+      - "scripts/ci/py-suite-coverage.sh"
+      - ".github/workflows/coverage.yml"
+  pull_request:
+    paths: *coverage-paths
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    if: github.actor != 'dependabot[bot]' # dependabot PRs get coverage from the base branch; skip the redundant full run
+    name: Coverage data (dart test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive # the build hook compiles bclibc/
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y clang
+
+      - run: dart pub get --no-example
+
+      - name: Run the package tests with coverage
+        run: >
+          dart test --coverage=coverage/raw/native
+          --exclude-tags=browser
+          test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart
+          test/async_calculator_test.dart test/hook_test.dart
+
+      - name: Upload coverage data
+        if: ${{ !cancelled() }} # keep coverage data even if a test fails
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-data-native
+          path: coverage/raw/native
+          retention-days: 1
+          if-no-files-found: error
+
+  py-suite:
+    if: github.actor != 'dependabot[bot]'
+    name: Coverage data (py-ballisticcalc suite, ${{ matrix.method }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # one entry per BcIntegrationMethod; the names are the entry points in python/pyproject.toml
+        method: [rk4, euler, verlet, rkck, dopri, tsitouras]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive # bclibc (build hook) and py-ballisticcalc (the test suite)
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
+        with:
+          python-version: "3.11"
+          activate-environment: "true"
+          github-token: ${{ github.token }}
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y clang
+
+      - run: dart pub get --no-example
+      - run: dart pub global activate coverage
+
+      - name: Install py-ballisticcalc, the dart-bclibc engines and pytest
+        run: uv pip install -e ./py-ballisticcalc -e ./python pytest
+        shell: bash
+
+      - name: Run py-ballisticcalc's tests on dart_bclibc+${{ matrix.method }}
+        # The bridge runs paused-on-exit under the Dart VM service so the coverage of lib/ can be collected
+        # when pytest closes it; the script fails if the tests fail or no coverage came out.
+        run: scripts/ci/py-suite-coverage.sh ${{ matrix.method }} coverage/raw -q
+        shell: bash
+
+      - name: Upload coverage data
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-data-py-${{ matrix.method }}
+          path: coverage/raw/py-${{ matrix.method }}.json
+          retention-days: 1
+          if-no-files-found: error
+
+  merge:
+    needs: [native, py-suite]
+    # !cancelled() alone would still run this even when the jobs above were skipped (dependabot actor),
+    # since a skipped job isn't a cancelled one; the actor check keeps it skipped in that case too
+    if: ${{ !cancelled() && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install lcov
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y lcov
+
+      - run: dart pub get --no-example
+      - run: dart pub global activate coverage
+
+      - name: Download coverage data
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-data-*
+          path: coverage/raw
+          # every artifact holds uniquely named .json files; flatten them into one directory
+          merge-multiple: true
+
+      - name: Combine coverage
+        # format_coverage sums the hit counts of every file in --in. Generated bindings and the web/wasm
+        # backend are left out: nothing here runs them.
+        run: |
+          dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage/raw \
+            --out=lcov.info \
+            --packages=.dart_tool/package_config.json \
+            --report-on=lib/src \
+            --report-on=lib/ffi/bclibc_ffi.dart \
+            --report-on=lib/ffi/bclibc_types.dart
+          lcov --summary lcov.info
+          genhtml lcov.info --output-directory coverage/html --quiet
+        shell: bash
+
+      - name: Upload the HTML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: coverage/html
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: ./lcov.info
+          fail_ci_if_error: true

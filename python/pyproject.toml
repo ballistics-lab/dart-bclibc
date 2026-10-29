@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dart-bclibc-pybc"
+version = "0.0.0"
+description = "py-ballisticcalc engines that run dart-bclibc (through a Dart bridge process), so py-ballisticcalc's own test suite can test the Dart package"
+requires-python = ">=3.11"
+license = "LGPL-3.0-only"
+dependencies = ["py-ballisticcalc>=3.0.0b3", "typing_extensions"]
+
+# One engine per BcIntegrationMethod: "dart_bclibc+<method>"
+[project.entry-points."py_ballisticcalc.engines.dart_bclibc"]
+rk4 = "dart_bclibc.pybc:DartBclibcRK4Engine"
+euler = "dart_bclibc.pybc:DartBclibcEulerEngine"
+verlet = "dart_bclibc.pybc:DartBclibcVerletEngine"
+rkck = "dart_bclibc.pybc:DartBclibcRkckEngine"
+dopri = "dart_bclibc.pybc:DartBclibcDopriEngine"
+tsitouras = "dart_bclibc.pybc:DartBclibcTsitourasEngine"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = ["dart_bclibc"]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-cov", "py-ballisticcalc"]
+
+[tool.uv.sources]
+# The package and its tests/ from one commit: `pytest ../py-ballisticcalc/tests --engine=dart_bclibc+rk4`.
+py-ballisticcalc = { path = "../py-ballisticcalc", editable = true }
+
+[tool.ruff]
+line-length = 120

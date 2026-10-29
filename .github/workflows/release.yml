@@ -155,6 +155,11 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
 
+      # py-ballisticcalc is only the checkout of the Python test suite (python/, not published). pub flags a
+      # submodule's own gitignored files (and an uninitialized one), so drop its gitlink from this runner's index.
+      - name: Leave the py-ballisticcalc test-suite submodule out of the package check
+        run: git rm -q --cached py-ballisticcalc
+
       - run: dart pub get --no-example
       - run: dart pub publish --dry-run
       - run: dart pub publish --force
