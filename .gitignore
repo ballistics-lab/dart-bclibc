@@ -43,3 +43,7 @@ coverage/
 
 # Scratch/experiment dirs (e.g. tmp/testd/ used to repro issues by hand).
 /tmp/
+
+# Python engines in python/
+__pycache__/
+*.egg-info/
