@@ -10,6 +10,7 @@ Dart FFI bindings for the [bclibc](https://github.com/ballistics-lab/bclibc) bal
 
 ![Linux] ![Windows] ![macOS] ![iOS] ![Android] ![WebAssembly]
 
+[![coverage]][CodecovUrl]
 [![CI](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml/badge.svg)](https://github.com/ballistics-lab/dart-bclibc/actions/workflows/ci.yml)
 
 A thin, zero-copy Dart wrapper around `libbclibc_ffi` — a high-performance 3-DOF + spin drift ballistic solver engine with RK4/Euler/Velocity Verlet integration. Ships the [bclibc](https://github.com/ballistics-lab/bclibc) C++ source in the package; no pre-built binaries and no downloads.
@@ -295,6 +296,12 @@ See [LICENSE](LICENSE) for the full text. See [CHANGELOG](CHANGELOG.md) for rele
 
 [Pub Version]: https://img.shields.io/pub/v/bclibc?logo=dart&cacheSeconds=0
 [pub package]: https://pub.dev/packages/bclibc
+
+[coverage]:
+https://codecov.io/gh/ballistics-lab/dart-bclibc/graph/badge.svg
+
+[CodecovUrl]:
+https://codecov.io/gh/ballistics-lab/dart-bclibc
 
 [Linux]: https://img.shields.io/badge/Linux-x86__64%20%7C%20arm64-grey?logo=linux&logoColor=black&labelColor=FCC624
 [Windows]: https://img.shields.io/badge/x86__64-grey?logo=windows&logoColor=black&label=Windows&labelColor=0078D4
