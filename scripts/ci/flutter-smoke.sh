@@ -61,7 +61,9 @@ case "$TARGET" in
   linux)
     flutter build linux --release
     have "libbclibc_ffi.so in the bundle" find build/linux -name 'libbclibc_ffi.so'
-    BUNDLE="$(dirname "$(find build/linux -type f -name bclibc_example | head -1)")"
+    # Only the bundle/ copy: build/linux/*/release/intermediates_do_not_run/ has an exe
+    # too (no lib/), and which one `find` lists first depends on the filesystem.
+    BUNDLE="$(cd "$(dirname "$(find build/linux -type f -path '*/bundle/bclibc_example' | head -1)")" && pwd)"
     selftest ok "$BUNDLE/bclibc_example"
     rm -f "$BUNDLE"/lib/libbclibc_ffi.so
     selftest fail "$BUNDLE/bclibc_example"
