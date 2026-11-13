@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- CI: the Flatpak example build uses Flutter 3.47.9 (was 3.47.8) and flutpak actions v0.8.7 (was v0.8.6).
+- CI: the Flatpak example build uses Flutter 3.50.0 (was 3.47.8) and flutpak actions v0.8.7 (was v0.8.6).
 
 ## [2.0.0] - 2026-10-29
 
