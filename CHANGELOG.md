@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Pin `bclibc` to `v2.0.0-7-gf83740a`: the zero search no longer depends on the early-termination limits
+- Pin `bclibc` to `v2.0.0-8-gbe7978f`: the zero search no longer depends on the early-termination limits
   (`cMaximumDrop`, `cMinimumAltitude`), so a zero with either at `0`, or a long one (3500 yd and more) at the default limits,
   no longer fails with "Trajectory too short to determine error at distance"; a zero beyond the maximum range is an
   out-of-range error (it was a plain solver-runtime error). The embedded wasm module is rebuilt from it.

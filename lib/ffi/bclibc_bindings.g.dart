@@ -537,7 +537,10 @@ external double BCLIBCFFI_get_correction(double distance_ft, double offset_ft);
 /// struct field consumed by a hand-written (non-Embind) JS/wasm binding,
 /// computed via sizeof()/offsetof() by whichever compiler builds this
 /// library — so a JS-side binding never has to hardcode/guess struct
-/// layout. See bclibc_ffi.cpp for the fixed field order this fills.
+/// layout. See bclibc_ffi.cpp for the fixed field order this fills: the
+/// structs in the order they were added to the ABI, each as its size and the
+/// offsets of its fields, the newest at the end (BCLIBCFFI_StepStats,
+/// BCLIBCFFI_ZeroInit). A struct added later is appended, so no offset moves.
 ///
 /// @param out      Caller-allocated buffer of at least BCLIBCFFI_LAYOUT_FIELD_COUNT int32s.
 /// @param out_len  Capacity of `out`, in int32 elements.
@@ -545,16 +548,6 @@ external double BCLIBCFFI_get_correction(double distance_ft, double offset_ft);
 /// -1 if out_len is too small.
 @ffi.Native<ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Int32)>()
 external int BCLIBCFFI_get_layout(ffi.Pointer<ffi.Int32> out, int out_len);
-
-/// @brief Layout of the structs added after BCLIBCFFI_get_layout() was frozen, in the same style (WASM/JS interop).
-///
-/// Kept separate so the size BCLIBCFFI_get_layout() returns, and the readers that rely on it, do not change.
-/// Fixed order: [ sizeof(StepStats), 2 field offsets (accepted, rejected) ]
-/// [ sizeof(ZeroInit), 7 field offsets (status, reserved, look_angle_rad, slant_range_ft,
-/// target_x_ft, target_y_ft, start_height_ft) ].
-/// Returns the number of values written, or -1 if out_len is too small.
-@ffi.Native<ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Int32)>()
-external int BCLIBCFFI_get_layout_ext(ffi.Pointer<ffi.Int32> out, int out_len);
 
 /// @brief Returns the library version string.
 @ffi.Native<ffi.Pointer<ffi.Char> Function()>()
