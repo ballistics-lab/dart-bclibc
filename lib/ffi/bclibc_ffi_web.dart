@@ -165,7 +165,20 @@ class _Layout {
   int get errorF64_2 => v[83];
   int get errorI32_0 => v[84];
 
-  static const int fieldCount = 85;
+  int get stepStatsSize => v[85];
+  int get stepStatsAccepted => v[86];
+  int get stepStatsRejected => v[87];
+
+  int get zeroInitSize => v[88];
+  int get zeroInitStatus => v[89];
+  int get zeroInitReserved => v[90];
+  int get zeroInitLookAngleRad => v[91];
+  int get zeroInitSlantRangeFt => v[92];
+  int get zeroInitTargetXFt => v[93];
+  int get zeroInitTargetYFt => v[94];
+  int get zeroInitStartHeightFt => v[95];
+
+  static const int fieldCount = 96;
 }
 
 // ============================================================================

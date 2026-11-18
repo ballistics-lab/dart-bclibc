@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Pin `bclibc` to `v2.1.0`: the zero search no longer depends on the early-termination limits
+  (`cMaximumDrop`, `cMinimumAltitude`), so a zero with either at `0`, or a long one (3500 yd and more) at the default limits,
+  no longer fails with "Trajectory too short to determine error at distance"; a zero beyond the maximum range is an
+  out-of-range error (it was a plain solver-runtime error). The embedded wasm module is rebuilt from it.
 - CI: the Flatpak example build uses Flutter 3.50.0 (was 3.47.8) and flutpak actions v0.8.7 (was v0.8.6).
 
 ## [2.0.0] - 2026-10-29

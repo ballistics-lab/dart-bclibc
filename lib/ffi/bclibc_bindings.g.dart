@@ -29,6 +29,115 @@ external double BCLIBCFFI_calculate_ogw(
   double velocity_fps,
 );
 
+/// @brief Interpolated step where `key` reaches `value` (3-point PCHIP, or the exact step when one matches).
+///
+/// @param start_from_time Only steps with time >= this are searched; 0 or negative disables it (ignored for TIME).
+/// Fails with BCLIBCFFI_ERR_INTERCEPTION when the value is not inside the stream.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_dense_get_at(
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> steps,
+  int count,
+  int key,
+  double value,
+  double start_from_time,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// Interpolated step where the slant height (height above the line of sight at look_angle_rad) reaches `value`.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_dense_get_at_slant_height(
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> steps,
+  int count,
+  double look_angle_rad,
+  double value,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_error_at_distance_shot() with per-call tolerances and step statistics.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_error_at_distance_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double angle_rad,
+  double target_x_ft,
+  double target_y_ft,
+  ffi.Pointer<ffi.Double> out_error_ft,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out_hit,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Vertical error of a shot fired at angle_rad, measured where x reaches target_x_ft:
+/// (hit.y - target_y_ft) - |hit.x - target_x_ft|.
+///
+/// When the trajectory ends before target_x_ft (minimum velocity, maximum drop or minimum altitude) the error is
+/// measured at its last point instead: it is still finite and signed (a shot that falls short is negative), which
+/// is what a zero search needs to bracket. Fails with BCLIBCFFI_ERR_SOLVER_RUNTIME only when nothing was
+/// integrated.
+///
+/// The shot's limits (config) apply as given. The zero solvers widen cMaximumDrop and cMinimumAltitude and drop
+/// cMinimumVelocity for their own searches; to reproduce one of their evaluations, do the same.
+///
+/// @param out_hit Optional. The interpolated point at target_x_ft, or the last point of a trajectory that ended
+/// before it.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_error_at_distance_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  double angle_rad,
+  double target_x_ft,
+  double target_y_ft,
+  ffi.Pointer<ffi.Double> out_error_ft,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out_hit,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 /// Find the apex (highest point) of the trajectory.
 /// @return BCLIBCFFI_OK on success, error code otherwise (fills *err).
 @ffi.Native<
@@ -41,6 +150,28 @@ external double BCLIBCFFI_calculate_ogw(
 external int BCLIBCFFI_find_apex(
   ffi.Pointer<BCLIBCFFI_ShotProps> props,
   ffi.Pointer<BCLIBCFFI_TrajectoryData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// Apex point, with per-call tolerances.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_TrajectoryData>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_apex_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  ffi.Pointer<BCLIBCFFI_TrajectoryData> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
@@ -79,6 +210,32 @@ external int BCLIBCFFI_find_max_range(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// Maximum range and its launch angle within [low_angle_deg, high_angle_deg], with per-call tolerances.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_MaxRangeResult>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_max_range_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double low_angle_deg,
+  double high_angle_deg,
+  ffi.Pointer<BCLIBCFFI_MaxRangeResult> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 @ffi.Native<
   ffi.Int32 Function(
     ffi.Pointer<BCLIBCFFI_Shot>,
@@ -109,6 +266,116 @@ external int BCLIBCFFI_find_max_range_shot(
 >()
 external int BCLIBCFFI_find_zero_angle(
   ffi.Pointer<BCLIBCFFI_ShotProps> props,
+  double distance_ft,
+  ffi.Pointer<ffi.Double> out_angle_rad,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// Barrel elevation that hits the sight line at distance_ft, with per-call tolerances.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_angle_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  ffi.Pointer<ffi.Double> out_angle_rad,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_find_zero_angle_lofted_shot() with per-call tolerances and step statistics (adaptive method).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_angle_lofted_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  int lofted,
+  ffi.Pointer<ffi.Double> out_angle_rad,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Barrel elevation for a zero at distance_ft; lofted != 0 selects the higher trajectory (the lofted
+/// solver), lofted == 0 the lower one. Fixed-step method (shot->method).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_angle_lofted_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  double distance_ft,
+  int lofted,
+  ffi.Pointer<ffi.Double> out_angle_rad,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_find_zero_angle_newton_shot() with per-call tolerances and step statistics.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_angle_newton_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  ffi.Pointer<ffi.Double> out_angle_rad,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Zero angle for distance_ft by Newton's method only (BCLIBCFFI_find_zero_angle_shot() adds the Ridder
+/// fallback). Fails with BCLIBCFFI_ERR_ZERO_FINDING when it does not converge.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_angle_newton_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
   double distance_ft,
   ffi.Pointer<ffi.Double> out_angle_rad,
   ffi.Pointer<BCLIBCFFI_Error> err,
@@ -155,6 +422,75 @@ external int BCLIBCFFI_find_zero_point(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// Lower zero and its terminal RANGE point, with per-call tolerances.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_point_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  ffi.Pointer<BCLIBCFFI_ZeroPointResult> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_find_zero_point_lofted_shot() with per-call tolerances and step statistics (adaptive method).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Int32,
+    ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_point_lofted_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  int lofted,
+  ffi.Pointer<BCLIBCFFI_ZeroPointResult> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Zero angle and terminal point for a zero at distance_ft; lofted selects the higher trajectory.
+/// Fixed-step method (shot->method).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Int32,
+    ffi.Pointer<BCLIBCFFI_ZeroPointResult>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_find_zero_point_lofted_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  double distance_ft,
+  int lofted,
+  ffi.Pointer<BCLIBCFFI_ZeroPointResult> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 /// @brief Find the lower zero for a user-facing shot and its terminal point.
 ///
 /// Converts `shot` to engine properties, then uses the Newton solver with
@@ -181,6 +517,12 @@ external int BCLIBCFFI_find_zero_point_shot(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// Free a dense-step array allocated by BCLIBCFFI_integrate_adaptive_shot().
+@ffi.Native<ffi.Void Function(ffi.Pointer<BCLIBCFFI_BaseTrajData>)>()
+external void BCLIBCFFI_free_base_trajectory(
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> steps,
+);
+
 /// Free a trajectory array allocated by BCLIBCFFI_integrate().
 @ffi.Native<ffi.Void Function(ffi.Pointer<BCLIBCFFI_TrajectoryData>)>()
 external void BCLIBCFFI_free_trajectory(
@@ -195,7 +537,10 @@ external double BCLIBCFFI_get_correction(double distance_ft, double offset_ft);
 /// struct field consumed by a hand-written (non-Embind) JS/wasm binding,
 /// computed via sizeof()/offsetof() by whichever compiler builds this
 /// library — so a JS-side binding never has to hardcode/guess struct
-/// layout. See bclibc_ffi.cpp for the fixed field order this fills.
+/// layout. See bclibc_ffi.cpp for the fixed field order this fills: the
+/// structs in the order they were added to the ABI, each as its size and the
+/// offsets of its fields, the newest at the end (BCLIBCFFI_StepStats,
+/// BCLIBCFFI_ZeroInit). A struct added later is appended, so no offset moves.
 ///
 /// @param out      Caller-allocated buffer of at least BCLIBCFFI_LAYOUT_FIELD_COUNT int32s.
 /// @param out_len  Capacity of `out`, in int32 elements.
@@ -253,6 +598,46 @@ external int BCLIBCFFI_integrate(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// @brief Integrate with per-call tolerances, optionally returning the accepted-step stream.
+///
+/// On success *out_records (and *out_dense when want_dense != 0) point to heap arrays of
+/// *out_count (and *out_dense_count) elements. Release them with BCLIBCFFI_free_trajectory() and
+/// BCLIBCFFI_free_base_trajectory(). *out_dense is NULL when want_dense == 0.
+///
+/// @param out_stats Optional. Filled even when the integration fails (step counts so far).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_TrajectoryRequest>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_integrate_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  ffi.Pointer<BCLIBCFFI_TrajectoryRequest> request,
+  int want_dense,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>> out_records,
+  ffi.Pointer<ffi.Int32> out_count,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>> out_dense,
+  ffi.Pointer<ffi.Int32> out_dense_count,
+  ffi.Pointer<ffi.Int32> out_reason,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 /// Integrate and interpolate the single point where a key field reaches
 /// the target value.
 /// @param key          BCLIBCFFI_BaseTrajInterpKey
@@ -274,6 +659,33 @@ external int BCLIBCFFI_integrate_at(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// @brief Integrate until key reaches target_value (interpolated raw and full point), with per-call tolerances and
+/// step statistics (adaptive method). The fixed-step variant is BCLIBCFFI_integrate_at_shot().
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_Interception>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_integrate_at_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  int key,
+  double target_value,
+  ffi.Pointer<BCLIBCFFI_Interception> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 @ffi.Native<
   ffi.Int32 Function(
     ffi.Pointer<BCLIBCFFI_Shot>,
@@ -288,6 +700,35 @@ external int BCLIBCFFI_integrate_at_shot(
   int key,
   double target_value,
   ffi.Pointer<BCLIBCFFI_Interception> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Integrate with a fixed-step method (shot->method: RK4, Euler or Velocity Verlet) and optional dense output.
+///
+/// Same outputs as BCLIBCFFI_integrate_adaptive_shot(). Adaptive methods are rejected with BCLIBCFFI_ERR_GENERIC
+/// (use BCLIBCFFI_integrate_adaptive_shot for them).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Pointer<BCLIBCFFI_TrajectoryRequest>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_integrate_dense_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  ffi.Pointer<BCLIBCFFI_TrajectoryRequest> request,
+  int want_dense,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>> out_records,
+  ffi.Pointer<ffi.Int32> out_count,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>> out_dense,
+  ffi.Pointer<ffi.Int32> out_dense_count,
+  ffi.Pointer<ffi.Int32> out_reason,
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
@@ -383,6 +824,109 @@ external int BCLIBCFFI_interpolate_trajectory_data(
   int flag,
   int method,
   ffi.Pointer<BCLIBCFFI_TrajectoryData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_range_for_angle_shot() with per-call tolerances and step statistics.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_range_for_angle_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double angle_rad,
+  ffi.Pointer<ffi.Double> out_slant_range_ft,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Slant distance where a shot fired at angle_rad crosses the line of sight (downward) again.
+/// *out_slant_range_ft is 0.0 when it never does.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_range_for_angle_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  double angle_rad,
+  ffi.Pointer<ffi.Double> out_slant_range_ft,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief The full trajectory record (distance, drop, windage, energy, ...) of one dense step, using the shot's
+/// atmosphere, drag and Coriolis data.
+///
+/// @param flag BCLIBCFFI_TrajFlag value stored in the record.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Int32,
+    ffi.Pointer<BCLIBCFFI_TrajectoryData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_trajectory_data_from_step_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> step,
+  int flag,
+  ffi.Pointer<BCLIBCFFI_TrajectoryData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// BCLIBCFFI_zero_init_shot() with per-call tolerances and step statistics.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Double,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_ZeroInit>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_zero_init_adaptive_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  int method,
+  double relative_tolerance,
+  double absolute_tolerance,
+  double distance_ft,
+  ffi.Pointer<BCLIBCFFI_ZeroInit> out,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// @brief Starting data of a zero search for distance_ft. Fails with BCLIBCFFI_ERR_OUT_OF_RANGE for a vertical
+/// shot whose apex is below the target.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_ZeroInit>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_zero_init_shot(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  double distance_ft,
+  ffi.Pointer<BCLIBCFFI_ZeroInit> out,
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
@@ -897,6 +1441,25 @@ enum BCLIBCFFI_Status {
   };
 }
 
+/// Accepted and rejected step counts of the most recent adaptive call.
+final class BCLIBCFFI_StepStats extends ffi.Struct {
+  /// < Accepted steps.
+  @ffi.Int32()
+  external int accepted;
+
+  /// < Rejected steps.
+  @ffi.Int32()
+  external int rejected;
+
+  static ffi.Pointer<BCLIBCFFI_StepStats> $allocate(
+    ffi.Allocator $allocator, {
+    required int accepted,
+    required int rejected,
+  }) => $allocator<BCLIBCFFI_StepStats>()
+    ..ref.accepted = accepted
+    ..ref.rejected = rejected;
+}
+
 enum BCLIBCFFI_TerminationReason {
   BCLIBCFFI_TERM_NO_TERMINATE(0),
   BCLIBCFFI_TERM_TARGET_RANGE_REACHED(1),
@@ -1133,6 +1696,75 @@ final class BCLIBCFFI_Wind extends ffi.Struct {
     ..ref.direction_from_rad = direction_from_rad
     ..ref.until_distance_ft = until_distance_ft
     ..ref.max_distance_ft = max_distance_ft;
+}
+
+/// Starting data of a zero search (see BCLIBCFFI_zero_init_shot).
+final class BCLIBCFFI_ZeroInit extends ffi.Struct {
+  /// < BCLIBCFFI_ZeroInitStatus
+  @ffi.Int32()
+  external int status;
+
+  /// < Padding, always 0.
+  @ffi.Int32()
+  external int reserved;
+
+  /// < Look angle; when status is DONE for a close shot, the barrel angle to use.
+  @ffi.Double()
+  external double look_angle_rad;
+
+  /// < Slant distance to the target.
+  @ffi.Double()
+  external double slant_range_ft;
+
+  /// < Horizontal distance to the target.
+  @ffi.Double()
+  external double target_x_ft;
+
+  /// < Target height.
+  @ffi.Double()
+  external double target_y_ft;
+
+  /// < Muzzle height relative to the sight line (negative sight height, cant applied).
+  @ffi.Double()
+  external double start_height_ft;
+
+  static ffi.Pointer<BCLIBCFFI_ZeroInit> $allocate(
+    ffi.Allocator $allocator, {
+    required int status,
+    required int reserved,
+    required double look_angle_rad,
+    required double slant_range_ft,
+    required double target_x_ft,
+    required double target_y_ft,
+    required double start_height_ft,
+  }) => $allocator<BCLIBCFFI_ZeroInit>()
+    ..ref.status = status
+    ..ref.reserved = reserved
+    ..ref.look_angle_rad = look_angle_rad
+    ..ref.slant_range_ft = slant_range_ft
+    ..ref.target_x_ft = target_x_ft
+    ..ref.target_y_ft = target_y_ft
+    ..ref.start_height_ft = start_height_ft;
+}
+
+/// Outcome of BCLIBCFFI_zero_init_shot().
+enum BCLIBCFFI_ZeroInitStatus {
+  /// < A search is needed.
+  BCLIBCFFI_ZERO_INIT_CONTINUE(0),
+
+  /// < The answer is already in look_angle_rad (very close or vertical shot).
+  BCLIBCFFI_ZERO_INIT_DONE(1);
+
+  final int value;
+  const BCLIBCFFI_ZeroInitStatus(this.value);
+
+  static BCLIBCFFI_ZeroInitStatus fromValue(int value) => switch (value) {
+    0 => BCLIBCFFI_ZERO_INIT_CONTINUE,
+    1 => BCLIBCFFI_ZERO_INIT_DONE,
+    _ => throw ArgumentError(
+      'Unknown value for BCLIBCFFI_ZeroInitStatus: $value',
+    ),
+  };
 }
 
 /// @brief Result of a lower-arc zero solve.
