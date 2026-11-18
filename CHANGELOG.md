@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-18
+
 ### Changed
 - Pin `bclibc` to `v2.1.0`: the zero search no longer depends on the early-termination limits
   (`cMaximumDrop`, `cMinimumAltitude`), so a zero with either at `0`, or a long one (3500 yd and more) at the default limits,
@@ -442,7 +444,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-rc.1...v2.0.0
 [2.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-beta.1...v2.0.0-rc.1
 [2.0.0-beta.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-alpha.1...v2.0.0-beta.1
