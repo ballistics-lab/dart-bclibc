@@ -2,7 +2,8 @@
 /// Thin Dart wrapper over the bclibc C FFI layer.
 ///
 /// API:
-///   findApexShot, findMaxRangeShot, findZeroAngleShot, integrateShot, integrateAtShot
+///   findApexShot, findMaxRangeShot, findZeroAngleShot, integrateShot, integrateAtShot,
+///   integrateDenseShot, denseGetAt, denseGetAtSlantHeight, trajectoryDataFromStep
 ///
 /// Usage:
 ///   final bc = BcLibC.open();
@@ -28,28 +29,14 @@ String _charArrayToString(ffi.Array<ffi.Char> arr, int maxLen) {
   return String.fromCharCodes(codes);
 }
 
-Never _throwFromError(BCLIBCFFI_Error err) {
-  final msg = _charArrayToString(err.message, 512);
-  if (err.code == BCLIBCFFI_Status.BCLIBCFFI_ERR_OUT_OF_RANGE.value) {
-    throw BcException(
-      code: err.code,
-      message: msg,
-      requestedDistanceFt: err.f64_0,
-      maxRangeFt: err.f64_1,
-      lookAngleRad: err.f64_2,
-    );
-  }
-  if (err.code == BCLIBCFFI_Status.BCLIBCFFI_ERR_ZERO_FINDING.value) {
-    throw BcException(
-      code: err.code,
-      message: msg,
-      zeroFindingError: err.f64_0,
-      lastBarrelElevationRad: err.f64_1,
-      iterationsCount: err.i32_0,
-    );
-  }
-  throw BcException(code: err.code, message: msg);
-}
+Never _throwFromError(BCLIBCFFI_Error err) => throw BcException.fromStatus(
+  code: err.code,
+  message: _charArrayToString(err.message, 512),
+  f64_0: err.f64_0,
+  f64_1: err.f64_1,
+  f64_2: err.f64_2,
+  i32_0: err.i32_0,
+);
 
 BcTrajectoryData _trajDataFromNative(BCLIBCFFI_TrajectoryData s) =>
     BcTrajectoryData(
@@ -146,6 +133,37 @@ extension _FillNativeShot on BcShot {
       p.wind_count = winds.length;
     }
   }
+}
+
+void _fillRequest(BCLIBCFFI_TrajectoryRequest r, BcTrajectoryRequest request) {
+  r.range_limit_ft = request.rangeLimitFt;
+  r.range_step_ft = request.rangeStepFt;
+  r.time_step = request.timeStep;
+  r.filter_flags = request.filterFlags;
+}
+
+void _fillBaseTraj(BCLIBCFFI_BaseTrajData d, BcBaseTrajData s) {
+  d.time = s.time;
+  d.px = s.px;
+  d.py = s.py;
+  d.pz = s.pz;
+  d.vx = s.vx;
+  d.vy = s.vy;
+  d.vz = s.vz;
+  d.mach = s.mach;
+}
+
+/// The steps as a C array in the [arena]; NULL for none (the library answers an empty stream itself).
+ffi.Pointer<BCLIBCFFI_BaseTrajData> _stepsToNative(
+  List<BcBaseTrajData> steps,
+  Arena arena,
+) {
+  if (steps.isEmpty) return ffi.nullptr;
+  final a = arena<BCLIBCFFI_BaseTrajData>(steps.length);
+  for (var i = 0; i < steps.length; i++) {
+    _fillBaseTraj(a[i], steps[i]);
+  }
+  return a;
 }
 
 // ============================================================================
@@ -262,10 +280,7 @@ class BcLibC implements BcEngine {
     final err = arena<BCLIBCFFI_Error>();
 
     shot._fill(p.ref, arena);
-    req.ref.range_limit_ft = request.rangeLimitFt;
-    req.ref.range_step_ft = request.rangeStepFt;
-    req.ref.time_step = request.timeStep;
-    req.ref.filter_flags = request.filterFlags;
+    _fillRequest(req.ref, request);
 
     final st = BCLIBCFFI_integrate_shot(p, req, pPtr, pCount, pReason, err);
     if (st != 0) _throwFromError(err.ref);
@@ -299,5 +314,145 @@ class BcLibC implements BcEngine {
       _baseTrajFromNative(out.ref.raw_data),
       _trajDataFromNative(out.ref.full_data),
     );
+  });
+
+  // ── Dense output (the accepted steps of the integrator) ───────────────────
+
+  @override
+  BcDenseResult integrateDenseShot(
+    BcShot shot,
+    BcTrajectoryRequest request, {
+    double relativeTolerance = 1e-6,
+    double absoluteTolerance = 1e-6,
+  }) => using((arena) {
+    final p = arena<BCLIBCFFI_Shot>();
+    final req = arena<BCLIBCFFI_TrajectoryRequest>();
+    final pRecs = arena<ffi.Pointer<BCLIBCFFI_TrajectoryData>>();
+    final pCount = arena<ffi.Int32>();
+    final pDense = arena<ffi.Pointer<BCLIBCFFI_BaseTrajData>>();
+    final pDenseCount = arena<ffi.Int32>();
+    final pReason = arena<ffi.Int32>();
+    final stats = arena<BCLIBCFFI_StepStats>();
+    final err = arena<BCLIBCFFI_Error>();
+
+    shot._fill(p.ref, arena);
+    _fillRequest(req.ref, request);
+
+    final adaptive = shot.method.isAdaptive;
+    final st = adaptive
+        ? BCLIBCFFI_integrate_adaptive_shot(
+            p,
+            shot.method.value,
+            relativeTolerance,
+            absoluteTolerance,
+            req,
+            1,
+            pRecs,
+            pCount,
+            pDense,
+            pDenseCount,
+            pReason,
+            stats,
+            err,
+          )
+        : BCLIBCFFI_integrate_dense_shot(
+            p,
+            req,
+            1,
+            pRecs,
+            pCount,
+            pDense,
+            pDenseCount,
+            pReason,
+            err,
+          );
+    if (st != 0) _throwFromError(err.ref);
+
+    final count = pCount.value;
+    final denseCount = pDenseCount.value;
+    final recs = pRecs.value;
+    final dense = pDense.value;
+    try {
+      return BcDenseResult(
+        List<BcTrajectoryData>.generate(
+          count,
+          (i) => _trajDataFromNative(recs[i]),
+        ),
+        BcTerminationReason.fromValue(pReason.value),
+        List<BcBaseTrajData>.generate(
+          denseCount,
+          (i) => _baseTrajFromNative(dense[i]),
+        ),
+        adaptive ? BcStepStats(stats.ref.accepted, stats.ref.rejected) : null,
+      );
+    } finally {
+      if (count > 0) BCLIBCFFI_free_trajectory(recs);
+      if (denseCount > 0) BCLIBCFFI_free_base_trajectory(dense);
+    }
+  });
+
+  @override
+  BcBaseTrajData denseGetAt(
+    List<BcBaseTrajData> steps,
+    BcBaseTrajInterpKey key,
+    double value, {
+    double startFromTime = 0.0,
+  }) => using((arena) {
+    final out = arena<BCLIBCFFI_BaseTrajData>();
+    final err = arena<BCLIBCFFI_Error>();
+    final st = BCLIBCFFI_dense_get_at(
+      _stepsToNative(steps, arena),
+      steps.length,
+      key.value,
+      value,
+      startFromTime,
+      out,
+      err,
+    );
+    if (st != 0) _throwFromError(err.ref);
+    return _baseTrajFromNative(out.ref);
+  });
+
+  @override
+  BcBaseTrajData denseGetAtSlantHeight(
+    List<BcBaseTrajData> steps,
+    double lookAngleRad,
+    double value,
+  ) => using((arena) {
+    final out = arena<BCLIBCFFI_BaseTrajData>();
+    final err = arena<BCLIBCFFI_Error>();
+    final st = BCLIBCFFI_dense_get_at_slant_height(
+      _stepsToNative(steps, arena),
+      steps.length,
+      lookAngleRad,
+      value,
+      out,
+      err,
+    );
+    if (st != 0) _throwFromError(err.ref);
+    return _baseTrajFromNative(out.ref);
+  });
+
+  @override
+  BcTrajectoryData trajectoryDataFromStep(
+    BcShot shot,
+    BcBaseTrajData step, {
+    int flag = 0,
+  }) => using((arena) {
+    final p = arena<BCLIBCFFI_Shot>();
+    final stepPtr = arena<BCLIBCFFI_BaseTrajData>();
+    final out = arena<BCLIBCFFI_TrajectoryData>();
+    final err = arena<BCLIBCFFI_Error>();
+    shot._fill(p.ref, arena);
+    _fillBaseTraj(stepPtr.ref, step);
+    final st = BCLIBCFFI_trajectory_data_from_step_shot(
+      p,
+      stepPtr,
+      flag,
+      out,
+      err,
+    );
+    if (st != 0) _throwFromError(err.ref);
+    return _trajDataFromNative(out.ref);
   });
 }

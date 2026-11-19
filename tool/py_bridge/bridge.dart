@@ -13,6 +13,8 @@
 //
 //   {"id":1,"op":"integrate","method":"rk4","config":{...},"shot":{...},
 //    "range_ft":..,"step_ft":..,"time_step":..,"flags":..}
+//   (an "integrate" with "dense":true also answers the accepted steps of the integrator, "dense_steps", and for the
+//    adaptive methods their statistics, "stats"; "rtol"/"atol" are the tolerances of those, default 1e-6 each)
 //   {"id":2,"op":"zero_point","method":"rk4","config":{...},"shot":{...},"distance_ft":..}
 //   {"id":3,"op":"zero_angle", ...same...}
 //   {"id":4,"op":"max_range","method":..,"config":..,"shot":..,"low_deg":..,"high_deg":..}
@@ -20,7 +22,7 @@
 //   {"id":6,"op":"info"}
 //
 // Replies: {"id":N,"ok":true,"result":{...}} or
-//          {"id":N,"ok":false,"error":{"kind":"out_of_range|zero_finding|solver|dart",...}}
+//          {"id":N,"ok":false,"error":{"kind":"out_of_range|zero_finding|domain|invalid_argument|out_of_bounds|runtime|solver|dart",...}}
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -135,6 +137,18 @@ List<Object?> _row(TrajectoryData d) => [
   d.flag,
 ];
 
+// Order matches the fields of BaseTrajData: time, position x y z, velocity x y z, mach.
+List<Object?> _stepRow(BcBaseTrajData s) => [
+  _out(s.time),
+  _out(s.px),
+  _out(s.py),
+  _out(s.pz),
+  _out(s.vx),
+  _out(s.vy),
+  _out(s.vz),
+  _out(s.mach),
+];
+
 Map<String, Object?> _handle(BcEngine engine, Map<String, dynamic> req) {
   final op = req['op'] as String;
   if (op == 'info') {
@@ -147,14 +161,31 @@ Map<String, Object?> _handle(BcEngine engine, Map<String, dynamic> req) {
 
   switch (op) {
     case 'integrate':
+      final request = BcTrajectoryRequest(
+        rangeLimitFt: _d(req['range_ft']),
+        rangeStepFt: _d(req['step_ft']),
+        timeStep: _d(req['time_step']),
+        filterFlags: (req['flags'] as num).toInt(),
+      );
+      if (req['dense'] == true) {
+        final r = engine.integrateDenseShot(
+          toBcShot(shot, method, config),
+          request,
+          relativeTolerance: _dn(req['rtol']) ?? 1e-6,
+          absoluteTolerance: _dn(req['atol']) ?? 1e-6,
+        );
+        return {
+          'reason': r.reason.value,
+          'rows': r.trajectory.map((t) => _row(toTrajectoryData(t))).toList(),
+          'dense_steps': r.steps.map(_stepRow).toList(),
+          'stats': r.stats == null
+              ? null
+              : {'accepted': r.stats!.accepted, 'rejected': r.stats!.rejected},
+        };
+      }
       final result = engine.integrateShot(
         toBcShot(shot, method, config),
-        BcTrajectoryRequest(
-          rangeLimitFt: _d(req['range_ft']),
-          rangeStepFt: _d(req['step_ft']),
-          timeStep: _d(req['time_step']),
-          filterFlags: (req['flags'] as num).toInt(),
-        ),
+        request,
       );
       return {
         'reason': result.reason.value,
@@ -199,9 +230,13 @@ Map<String, Object?> _handle(BcEngine engine, Map<String, dynamic> req) {
 Map<String, Object?> _error(Object e) {
   if (e is BcException) {
     return {
-      'kind': switch (e.code) {
-        2 => 'out_of_range',
-        3 => 'zero_finding',
+      'kind': switch (e.kind) {
+        BcErrorKind.outOfRange => 'out_of_range',
+        BcErrorKind.zeroFinding => 'zero_finding',
+        BcErrorKind.domain => 'domain',
+        BcErrorKind.invalidArgument => 'invalid_argument',
+        BcErrorKind.outOfBounds => 'out_of_bounds',
+        BcErrorKind.logic || BcErrorKind.runtime => 'runtime',
         _ => 'solver',
       },
       'code': e.code,
@@ -212,6 +247,9 @@ Map<String, Object?> _error(Object e) {
       'zero_finding_error': e.zeroFindingError,
       'last_barrel_elevation_rad': e.lastBarrelElevationRad,
       'iterations_count': e.iterationsCount,
+      'requested_value': e.requestedValue,
+      'minimum_value': e.minimumValue,
+      'maximum_value': e.maximumValue,
     };
   }
   return {'kind': 'dart', 'type': e.runtimeType.toString(), 'message': '$e'};

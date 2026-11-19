@@ -20,6 +20,10 @@ enum BcIntegrationMethod {
   final int value;
   const BcIntegrationMethod(this.value);
 
+  /// The embedded Runge-Kutta methods with step-size control (they take tolerances, see
+  /// [BcEngine.integrateDenseShot]); the others have a fixed step.
+  bool get isAdaptive => this == rkck || this == dopri || this == tsitouras;
+
   static BcIntegrationMethod fromValue(int value) => switch (value) {
     0 => rk4,
     1 => euler,
@@ -261,6 +265,22 @@ class BcInterception {
   const BcInterception(this.rawData, this.fullData);
 }
 
+/// Accepted and rejected steps of an adaptive integration (`BCLIBCFFI_StepStats`).
+class BcStepStats {
+  final int accepted, rejected;
+  const BcStepStats(this.accepted, this.rejected);
+}
+
+/// What [BcEngine.integrateDenseShot] returns: the filtered rows of [BcHitResult] and the accepted steps of the
+/// integrator (dense output), in time order. [stats] is set for the adaptive methods only.
+class BcDenseResult {
+  final List<BcTrajectoryData> trajectory;
+  final BcTerminationReason reason;
+  final List<BcBaseTrajData> steps;
+  final BcStepStats? stats;
+  const BcDenseResult(this.trajectory, this.reason, this.steps, this.stats);
+}
+
 // ============================================================================
 // Exception
 // ============================================================================
@@ -292,6 +312,78 @@ abstract class BcEngine {
     BcBaseTrajInterpKey key,
     double targetValue,
   );
+
+  /// [integrateShot] that also returns the accepted steps of the integrator (dense output), for any method: the
+  /// fixed-step ones through `BCLIBCFFI_integrate_dense_shot`, the adaptive ones through `BCLIBCFFI_integrate_adaptive_shot`
+  /// with [relativeTolerance] (finite, positive) and [absoluteTolerance] (finite, non-negative); a tolerance out of range
+  /// is a [BcException] of kind [BcErrorKind.invalidArgument]. The tolerances are ignored by the fixed-step methods.
+  BcDenseResult integrateDenseShot(
+    BcShot shot,
+    BcTrajectoryRequest request, {
+    double relativeTolerance,
+    double absoluteTolerance,
+  });
+
+  /// The step where [key] reaches [value], interpolated in dense output ([steps], time-ordered: what
+  /// [integrateDenseShot] returned), or the exact step when one matches. Only steps with time >= [startFromTime] are
+  /// searched (0 or negative: all; ignored for [BcBaseTrajInterpKey.time]). A value beyond the stream is a
+  /// [BcErrorKind.outOfBounds] error with the range of the stream; fewer than 3 steps, [BcErrorKind.domain].
+  BcBaseTrajData denseGetAt(
+    List<BcBaseTrajData> steps,
+    BcBaseTrajInterpKey key,
+    double value, {
+    double startFromTime,
+  });
+
+  /// The step where the height above the line of sight at [lookAngleRad] reaches [value].
+  BcBaseTrajData denseGetAtSlantHeight(
+    List<BcBaseTrajData> steps,
+    double lookAngleRad,
+    double value,
+  );
+
+  /// The full record (distance, drop, windage, energy, ...) of one dense [step], with the atmosphere, drag and Coriolis
+  /// data of [shot]; [flag] is the `BCLIBCFFI_TrajFlag` value stored in it.
+  BcTrajectoryData trajectoryDataFromStep(
+    BcShot shot,
+    BcBaseTrajData step, {
+    int flag,
+  });
+}
+
+/// The kinds of failure of a call into bclibc: `BCLIBCFFI_Status` (bclibc 2.2 tells them all apart; before, everything that
+/// was not a solver's was [generic]).
+enum BcErrorKind {
+  solverRuntime(1),
+  outOfRange(2),
+  zeroFinding(3),
+  interception(4),
+  generic(5),
+
+  /// Inputs the operation cannot work with: a degenerate interpolation segment, too few points ([BcException.lhs], [BcException.rhs]).
+  domain(6),
+
+  /// An argument that is not acceptable: a drag table of fewer than 2 points, a tolerance out of range, an unknown key.
+  invalidArgument(7),
+
+  /// An index or a value outside the data: a key beyond the trajectory ([BcException.requestedValue],
+  /// [BcException.minimumValue], [BcException.maximumValue]).
+  outOfBounds(8),
+  logic(9),
+  runtime(10),
+
+  /// A status code this package does not know (a library newer than the bindings).
+  unknown(-1);
+
+  final int code;
+  const BcErrorKind(this.code);
+
+  static BcErrorKind fromCode(int code) {
+    for (final k in values) {
+      if (k.code == code) return k;
+    }
+    return unknown;
+  }
 }
 
 class BcException implements Exception {
@@ -302,6 +394,10 @@ class BcException implements Exception {
   // ZeroFinding extras
   final double? zeroFindingError, lastBarrelElevationRad;
   final int? iterationsCount;
+  // OutOfBounds extras: the value or index asked for and the range the data allows
+  final double? requestedValue, minimumValue, maximumValue;
+  // Domain extras: the two values the operation could not tell apart or work with
+  final double? lhs, rhs;
 
   const BcException({
     required this.code,
@@ -312,7 +408,55 @@ class BcException implements Exception {
     this.zeroFindingError,
     this.lastBarrelElevationRad,
     this.iterationsCount,
+    this.requestedValue,
+    this.minimumValue,
+    this.maximumValue,
+    this.lhs,
+    this.rhs,
   });
+
+  /// The exception of a failed call, from the fields of `BCLIBCFFI_Error` (what `f64_0`..`f64_2` and `i32_0` mean
+  /// depends on the code, see the table at `BCLIBCFFI_Error` in bclibc_ffi.h): shared by the native and the web
+  /// backend, so both throw the same thing for the same failure.
+  factory BcException.fromStatus({
+    required int code,
+    required String message,
+    required double f64_0,
+    required double f64_1,
+    required double f64_2,
+    required int i32_0,
+  }) => switch (BcErrorKind.fromCode(code)) {
+    BcErrorKind.outOfRange => BcException(
+      code: code,
+      message: message,
+      requestedDistanceFt: f64_0,
+      maxRangeFt: f64_1,
+      lookAngleRad: f64_2,
+    ),
+    BcErrorKind.zeroFinding => BcException(
+      code: code,
+      message: message,
+      zeroFindingError: f64_0,
+      lastBarrelElevationRad: f64_1,
+      iterationsCount: i32_0,
+    ),
+    BcErrorKind.outOfBounds => BcException(
+      code: code,
+      message: message,
+      requestedValue: f64_0,
+      minimumValue: f64_1,
+      maximumValue: f64_2,
+    ),
+    BcErrorKind.domain => BcException(
+      code: code,
+      message: message,
+      lhs: f64_0,
+      rhs: f64_1,
+    ),
+    _ => BcException(code: code, message: message),
+  };
+
+  BcErrorKind get kind => BcErrorKind.fromCode(code);
 
   @override
   String toString() => 'BcException($code): $message';

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Dense output, on the native and the web backend: `BcEngine.integrateDenseShot` returns the filtered rows and the accepted steps
+  of the integrator (`BcDenseResult`, with `BcStepStats` for the adaptive methods, which take `relativeTolerance` and
+  `absoluteTolerance`), for every integration method; `denseGetAt`, `denseGetAtSlantHeight` and `trajectoryDataFromStep` work on
+  those steps (the interpolation is the library's). The py-ballisticcalc driver (`python/`) supports `dense_output` with it.
+- `BcException.kind` (`BcErrorKind`) and the fields of the kinds bclibc 2.2 tells apart: `outOfBounds` (`requestedValue`,
+  `minimumValue`, `maximumValue`) and `domain` (`lhs`, `rhs`), next to `outOfRange` and `zeroFinding`. The native and the web
+  backend build the exception in one place (`BcException.fromStatus`). The bridge of the py-ballisticcalc driver reports the
+  kinds, and the driver raises what the Cython layer does for them (`ValueError`, `IndexError`, `RuntimeError`).
+
 ### Changed
 - Pin `bclibc` to `v2.1.0-3-g10b5d05` (bclibc PR #51, towards 2.2.0): the C ABI tells the kinds of error apart
   (`BCLIBCFFI_ERR_DOMAIN`, `_INVALID_ARGUMENT`, `_OUT_OF_BOUNDS`, `_LOGIC`, `_RUNTIME`; they were all `_GENERIC`), and has a

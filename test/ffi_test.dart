@@ -290,4 +290,185 @@ void main() {
       expect(intercept.fullData.distanceFt, closeTo(targetFt, targetFt * 0.01));
     });
   });
+
+  // ── Typed errors and dense output ─────────────────────────────────────────
+
+  group('typed errors', () {
+    BcDenseResult dense([BcIntegrationMethod m = BcIntegrationMethod.rk4]) =>
+        bc.integrateDenseShot(
+          _makeShot(barrelElevationRad: 0.005, method: m),
+          BcTrajectoryRequest(
+            rangeLimitFt: 1000.0 * 3.28084,
+            rangeStepFt: 100.0 * 3.28084,
+          ),
+        );
+
+    test('a value beyond the dense output is outOfBounds, with its range', () {
+      final steps = dense().steps;
+      expect(
+        () => bc.denseGetAt(steps, BcBaseTrajInterpKey.time, 1e6),
+        throwsA(
+          isA<BcException>()
+              .having((e) => e.kind, 'kind', BcErrorKind.outOfBounds)
+              .having((e) => e.requestedValue, 'requested', 1e6)
+              .having((e) => e.minimumValue, 'minimum', steps.first.time)
+              .having((e) => e.maximumValue, 'maximum', steps.last.time),
+        ),
+      );
+    });
+
+    test('fewer than 3 steps is a domain error', () {
+      final steps = dense().steps.take(2).toList();
+      expect(
+        () => bc.denseGetAt(steps, BcBaseTrajInterpKey.time, 0.0),
+        throwsA(
+          isA<BcException>().having((e) => e.kind, 'kind', BcErrorKind.domain),
+        ),
+      );
+      expect(
+        () => bc.denseGetAt(const [], BcBaseTrajInterpKey.time, 0.0),
+        throwsA(
+          isA<BcException>().having((e) => e.kind, 'kind', BcErrorKind.domain),
+        ),
+      );
+    });
+
+    test('a tolerance out of range is invalidArgument', () {
+      expect(
+        () => bc.integrateDenseShot(
+          _makeShot(method: BcIntegrationMethod.dopri),
+          BcTrajectoryRequest(rangeLimitFt: 1000.0, rangeStepFt: 100.0),
+          relativeTolerance: -1.0,
+        ),
+        throwsA(
+          isA<BcException>().having(
+            (e) => e.kind,
+            'kind',
+            BcErrorKind.invalidArgument,
+          ),
+        ),
+      );
+    });
+
+    test('a drag table of one point is invalidArgument', () {
+      final one = BcShot(
+        bc: 0.279,
+        weightGrain: 300.0,
+        diameterInch: 0.338,
+        lengthInch: 1.3,
+        muzzleVelocityFps: 2750.0,
+        sightHeightFt: 0.07,
+        twistInch: 10.0,
+        tempC: 15.0,
+        pressureHpa: 1013.25,
+        altitudeFt: 0.0,
+        dragTable: [BcDragPoint(1.0, 0.3)],
+        lookAngleRad: 0.0,
+        barrelElevationRad: 0.0,
+      );
+      expect(
+        () => bc.findZeroAngleShot(one, 300.0),
+        throwsA(
+          isA<BcException>().having(
+            (e) => e.kind,
+            'kind',
+            BcErrorKind.invalidArgument,
+          ),
+        ),
+      );
+    });
+
+    test('the solver kinds keep their kind and fields', () {
+      try {
+        bc.findZeroAngleShot(_makeShot(), 60000.0);
+        fail('expected a BcException');
+      } on BcException catch (e) {
+        expect(e.kind, BcErrorKind.outOfRange);
+        expect(e.requestedDistanceFt, 60000.0);
+        expect(e.maxRangeFt, isNotNull);
+      }
+    });
+  });
+
+  group('dense output', () {
+    final request = BcTrajectoryRequest(
+      rangeLimitFt: 1000.0 * 3.28084,
+      rangeStepFt: 100.0 * 3.28084,
+      filterFlags: 8, // RANGE
+    );
+
+    for (final method in BcIntegrationMethod.values) {
+      test('integrateDenseShot, ${method.name}: steps, rows and stats', () {
+        final shot = _makeShot(barrelElevationRad: 0.005, method: method);
+        final result = bc.integrateDenseShot(shot, request);
+        final plain = bc.integrateShot(shot, request);
+
+        // the same integration as integrateShot: the same rows
+        expect(result.trajectory.length, plain.trajectory.length);
+        expect(result.reason, plain.reason);
+        expect(
+          result.trajectory.last.distanceFt,
+          closeTo(plain.trajectory.last.distanceFt, 1e-6),
+        );
+
+        // the accepted steps: time-ordered, from the muzzle to the end
+        final steps = result.steps;
+        expect(steps.length, greaterThanOrEqualTo(3));
+        expect(steps.first.time, 0.0);
+        for (var i = 1; i < steps.length; i++) {
+          expect(steps[i].time, greaterThan(steps[i - 1].time));
+        }
+        expect(steps.last.px, greaterThanOrEqualTo(1000.0 * 3.28084 - 1e-6));
+
+        // step statistics for the adaptive methods only
+        if (method.isAdaptive) {
+          expect(result.stats, isNotNull);
+          expect(result.stats!.accepted, greaterThan(0));
+          expect(result.stats!.rejected, greaterThanOrEqualTo(0));
+        } else {
+          expect(result.stats, isNull);
+        }
+      });
+    }
+
+    test('denseGetAt: an exact step, a position, the slant height', () {
+      final shot = _makeShot(barrelElevationRad: 0.005);
+      final steps = bc.integrateDenseShot(shot, request).steps;
+
+      // an exact step comes back as it is
+      final exact = bc.denseGetAt(
+        steps,
+        BcBaseTrajInterpKey.time,
+        steps[2].time,
+      );
+      expect(exact.px, steps[2].px);
+      expect(exact.vy, steps[2].vy);
+
+      // by position: the key is the value asked for
+      final x = 500.0 * 3.28084;
+      final atX = bc.denseGetAt(steps, BcBaseTrajInterpKey.posX, x);
+      expect(atX.px, closeTo(x, 1e-9));
+      expect(atX.time, greaterThan(0.0));
+
+      // by slant height: the muzzle is 0.21 m below the sight line, so the bullet crosses it going up
+      final up = bc.denseGetAtSlantHeight(steps, 0.0, 0.0);
+      expect(up.py, closeTo(0.0, 1e-6));
+    });
+
+    test('trajectoryDataFromStep matches the row of the integration', () {
+      final shot = _makeShot(barrelElevationRad: 0.005);
+      final result = bc.integrateDenseShot(shot, request);
+      final rowFt = 300.0 * 3.28084; // 3 x 100 m: one of the requested rows
+      final step = bc.denseGetAt(result.steps, BcBaseTrajInterpKey.posX, rowFt);
+      final full = bc.trajectoryDataFromStep(shot, step, flag: 8);
+      expect(full.flag, 8);
+      expect(full.distanceFt, closeTo(rowFt, 1e-6));
+      expect(full.time, closeTo(step.time, 1e-12));
+      final row = result.trajectory.firstWhere(
+        (r) => (r.distanceFt - rowFt).abs() < 1e-3,
+      );
+      expect(full.heightFt, closeTo(row.heightFt, 0.01));
+      expect(full.velocityFps, closeTo(row.velocityFps, 0.5));
+    });
+  });
 }

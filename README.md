@@ -100,6 +100,7 @@ for (final pt in hit.trajectory) {
 | `BcHitResult`      | Full trajectory list + `BCLIBCFFI_TerminationReason`. |
 | `BcInterception`   | Single interpolated point from `integrateAtShot`.     |
 | `BcMaxRangeResult` | Max range (ft) + angle (rad) from `findMaxRangeShot`. |
+| `BcDenseResult`    | Filtered rows + the accepted steps of the integrator (`BcBaseTrajData`) + `BcStepStats` (adaptive methods), from `integrateDenseShot`. |
 
 ### `BcLibC` methods
 
@@ -108,6 +109,10 @@ for (final pt in hit.trajectory) {
 | `BcLibC.open()`                              | Load the native library (call once at startup). |
 | `integrateShot(BcShot, BcTrajectoryRequest)` | Full filtered trajectory.                       |
 | `integrateAtShot(BcShot, key, value)`        | Single interpolated point at a trajectory key.  |
+| `integrateDenseShot(BcShot, BcTrajectoryRequest)` | Filtered rows and the accepted steps of the integrator (dense output), for every method; the adaptive ones take `relativeTolerance` / `absoluteTolerance` (default `1e-6`). |
+| `denseGetAt(steps, key, value)`              | The step where a key reaches a value, interpolated in the dense output. |
+| `denseGetAtSlantHeight(steps, lookAngleRad, value)` | The step where the height above the line of sight reaches a value. |
+| `trajectoryDataFromStep(BcShot, step, flag:)` | The full record (distance, drop, windage, energy, ...) of one dense step. |
 | `findZeroAngleShot(BcShot, distanceFt)`      | Barrel elevation to zero at distance.           |
 | `findApexShot(BcShot)`                       | Highest point of the trajectory arc.            |
 | `findMaxRangeShot(BcShot)`                   | Maximum range and corresponding angle.          |
@@ -116,6 +121,15 @@ for (final pt in hit.trajectory) {
 | `calculateOgw(grains, fps)`                  | Optimal Game Weight.                            |
 
 Legacy `BcShotProps`-based overloads (`findApex`, `findMaxRange`, etc.) are retained for backwards compatibility.
+
+### Errors
+
+A failed call throws a `BcException`; `BcException.kind` is a `BcErrorKind` (`outOfRange`, `zeroFinding`, `interception`,
+`solverRuntime`, `domain`, `invalidArgument`, `outOfBounds`, `logic`, `runtime`, `generic`). The fields that go with a
+kind are set: `requestedDistanceFt` / `maxRangeFt` / `lookAngleRad` (`outOfRange`), `zeroFindingError` /
+`lastBarrelElevationRad` / `iterationsCount` (`zeroFinding`), `requestedValue` / `minimumValue` / `maximumValue`
+(`outOfBounds`: a key beyond the dense output), `lhs` / `rhs` (`domain`). The native and the web backend throw the same
+thing for the same failure.
 
 ### Enums
 
