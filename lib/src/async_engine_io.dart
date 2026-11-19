@@ -47,6 +47,9 @@ Future<HitResult> asyncFire({
   required double timeStep,
   required int filterFlags,
   required bool raiseRangeError,
+  required bool denseOutput,
+  required double relativeTolerance,
+  required double absoluteTolerance,
   required BcIntegrationMethod method,
   required BcConfig config,
 }) => Isolate.run(
@@ -57,5 +60,32 @@ Future<HitResult> asyncFire({
     timeStep: timeStep,
     filterFlags: filterFlags,
     raiseRangeError: raiseRangeError,
+    denseOutput: denseOutput,
+    relativeTolerance: relativeTolerance,
+    absoluteTolerance: absoluteTolerance,
   ),
+);
+
+Future<TrajectoryData> asyncGetAt(
+  HitResult hit,
+  BcBaseTrajInterpKey key,
+  double value, {
+  required double startFromTime,
+  required int flag,
+  required BcIntegrationMethod method,
+  required BcConfig config,
+}) => Isolate.run(
+  () => Calculator(
+    method: method,
+    config: config,
+  ).getAt(hit, key, value, startFromTime: startFromTime, flag: flag),
+);
+
+Future<TrajectoryData> asyncGetAtDistance(
+  HitResult hit,
+  Distance distance,
+  BcIntegrationMethod method,
+  BcConfig config,
+) => Isolate.run(
+  () => Calculator(method: method, config: config).getAtDistance(hit, distance),
 );

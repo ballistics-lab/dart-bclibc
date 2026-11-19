@@ -98,6 +98,9 @@ class Calculator {
     double timeStep = 0.0,
     int filterFlags = 8, // BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE
     bool raiseRangeError = true,
+    bool denseOutput = false,
+    double relativeTolerance = 1e-6,
+    double absoluteTolerance = 1e-6,
   }) => calcFire(
     _engine,
     method,
@@ -108,5 +111,32 @@ class Calculator {
     timeStep: timeStep,
     filterFlags: filterFlags,
     raiseRangeError: raiseRangeError,
+    denseOutput: denseOutput,
+    relativeTolerance: relativeTolerance,
+    absoluteTolerance: absoluteTolerance,
   );
+
+  /// The point of [hit] where [key] reaches [value], interpolated in its dense output (fire with `denseOutput: true`).
+  /// See [calcGetAt].
+  TrajectoryData getAt(
+    HitResult hit,
+    BcBaseTrajInterpKey key,
+    double value, {
+    double startFromTime = 0.0,
+    int flag = 0,
+  }) => calcGetAt(
+    _engine,
+    method,
+    config,
+    hit,
+    key,
+    value,
+    startFromTime: startFromTime,
+    flag: flag,
+  );
+
+  /// The point of [hit] at [distance], interpolated: in its dense output when it has one, else between its rows
+  /// ([HitResult.getAtDistance] is the nearest row). See [calcGetAtDistance].
+  TrajectoryData getAtDistance(HitResult hit, Distance distance) =>
+      calcGetAtDistance(_engine, method, config, hit, distance);
 }

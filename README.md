@@ -100,6 +100,7 @@ for (final pt in hit.trajectory) {
 | `BcHitResult`      | Full trajectory list + `BCLIBCFFI_TerminationReason`. |
 | `BcInterception`   | Single interpolated point from `integrateAtShot`.     |
 | `BcMaxRangeResult` | Max range (ft) + angle (rad) from `findMaxRangeShot`. |
+| `BcDenseResult`    | Filtered rows + the accepted steps of the integrator (`BcBaseTrajData`) + `BcStepStats` (adaptive methods), from `integrateDenseShot`. |
 
 ### `BcLibC` methods
 
@@ -108,6 +109,10 @@ for (final pt in hit.trajectory) {
 | `BcLibC.open()`                              | Load the native library (call once at startup). |
 | `integrateShot(BcShot, BcTrajectoryRequest)` | Full filtered trajectory.                       |
 | `integrateAtShot(BcShot, key, value)`        | Single interpolated point at a trajectory key.  |
+| `integrateDenseShot(BcShot, BcTrajectoryRequest)` | Filtered rows and the accepted steps of the integrator (dense output), for every method; the adaptive ones take `relativeTolerance` / `absoluteTolerance` (default `1e-6`). |
+| `denseGetAt(steps, key, value)`              | The step where a key reaches a value, interpolated in the dense output. |
+| `denseGetAtSlantHeight(steps, lookAngleRad, value)` | The step where the height above the line of sight reaches a value. |
+| `trajectoryDataFromStep(BcShot, step, flag:)` | The full record (distance, drop, windage, energy, ...) of one dense step. |
 | `findZeroAngleShot(BcShot, distanceFt)`      | Barrel elevation to zero at distance.           |
 | `findApexShot(BcShot)`                       | Highest point of the trajectory arc.            |
 | `findMaxRangeShot(BcShot)`                   | Maximum range and corresponding angle.          |
@@ -116,6 +121,15 @@ for (final pt in hit.trajectory) {
 | `calculateOgw(grains, fps)`                  | Optimal Game Weight.                            |
 
 Legacy `BcShotProps`-based overloads (`findApex`, `findMaxRange`, etc.) are retained for backwards compatibility.
+
+### Errors
+
+A failed call throws a `BcException`; `BcException.kind` is a `BcErrorKind` (`outOfRange`, `zeroFinding`, `interception`,
+`solverRuntime`, `domain`, `invalidArgument`, `outOfBounds`, `logic`, `runtime`, `generic`). The fields that go with a
+kind are set: `requestedDistanceFt` / `maxRangeFt` / `lookAngleRad` (`outOfRange`), `zeroFindingError` /
+`lastBarrelElevationRad` / `iterationsCount` (`zeroFinding`), `requestedValue` / `minimumValue` / `maximumValue`
+(`outOfBounds`: a key beyond the dense output), `lhs` / `rhs` (`domain`). The native and the web backend throw the same
+thing for the same failure.
 
 ### Enums
 
@@ -150,6 +164,29 @@ final result = await AsyncCalculator().fire(
   trajectoryRange: Distance.meter(1000),
 );
 ```
+
+### Dense output and points between the rows
+
+`fire` returns the rows you asked for (every `trajectoryStep`, and the events). With `denseOutput: true` the result also
+carries the accepted steps of the integrator (`HitResult.denseSteps`), and `getAt` / `getAtDistance` interpolate in them
+(the interpolation is bclibc's, the same on the native and the web backend) and give a full record at any point:
+
+```dart
+final calc = Calculator(method: BcIntegrationMethod.dopri); // or AsyncCalculator()
+final hit = calc.fire(
+  shot: shot,
+  trajectoryRange: Distance.meter(1000),
+  trajectoryStep: Distance.meter(100),
+  denseOutput: true, // the adaptive methods also take relativeTolerance / absoluteTolerance (default 1e-6)
+);
+
+final at150 = calc.getAtDistance(hit, Distance.meter(150));              // downrange
+final at1s = calc.getAt(hit, BcBaseTrajInterpKey.time, 1.0);             // any BcBaseTrajInterpKey
+```
+
+Without `denseOutput`, `getAtDistance` interpolates between the rows (three-point PCHIP through the rows around the
+distance), and `getAt` throws a `StateError`; a distance outside the rows is a `RangeError`. `HitResult.getAtDistance` is
+the nearest row, not an interpolation. A key the trajectory does not reach is a `BcException` of kind `outOfBounds`.
 
 ---
 

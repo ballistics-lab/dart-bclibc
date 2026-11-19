@@ -16,8 +16,8 @@ Engines, registered as py-ballisticcalc entry points (see pyproject.toml), one p
 
 Zeroing, apex and max range use dart-bclibc's native solvers; a lofted zero, and the cases outside the
 native solver's domain (a zero at the muzzle, a vertical shot), fall back to py-ballisticcalc's own
-`BaseIntegrationEngine` code, which only needs `_integrate`. dense_output is not supported: the package
-only returns filtered rows.
+`BaseIntegrationEngine` code, which only needs `_integrate`. dense_output is supported: the package returns
+the accepted steps of the integrator (`BcEngine.integrateDenseShot`), which become `HitResult.base_data`.
 """
 
 # TrajectoryData._new_* build unit objects without unit conversion -- the fast path py-ballisticcalc's own
@@ -33,8 +33,9 @@ from py_ballisticcalc.engines.base_engine import BaseEngineConfigDict, BaseInteg
 from py_ballisticcalc.exceptions import OutOfRangeError, RangeError, SolverRuntimeError, ZeroFindingError
 from py_ballisticcalc.logger import logger
 from py_ballisticcalc.shot import Shot, ShotProps
-from py_ballisticcalc.trajectory_data import HitResult, TrajectoryData, TrajFlag
+from py_ballisticcalc.trajectory_data import BaseTrajData, HitResult, TrajectoryData, TrajFlag
 from py_ballisticcalc.unit import Angular, Distance, Pressure, Temperature, Velocity, Weight
+from py_ballisticcalc.vector import Vector
 from typing_extensions import override
 
 from dart_bclibc._bridge import BridgeError, BridgeReplyError, bridge
@@ -91,6 +92,11 @@ def _row_to_trajectory_data(r: list[Any]) -> TrajectoryData:
     )
 
 
+def _step_to_base_traj_data(r: list[Any]) -> BaseTrajData:
+    """One accepted step of the integrator: time, position x y z, velocity x y z, mach (BaseTrajData in bridge.dart)."""
+    return BaseTrajData(time=r[0], position=Vector(r[1], r[2], r[3]), velocity=Vector(r[4], r[5], r[6]), mach=r[7])
+
+
 def _raise_solver_error(error: dict[str, Any], note: str) -> None:
     """Turn a bridge error object into the exception py-ballisticcalc's own engines raise."""
     kind = error["kind"]
@@ -107,6 +113,14 @@ def _raise_solver_error(error: dict[str, Any], note: str) -> None:
             error["iterations_count"],
             Angular.Radian(error["last_barrel_elevation_rad"]),
         )
+    # the kinds that are not a solver's (bclibc 2.2), as the Cython layer raises them: a domain or argument error is a
+    # ValueError, an index or a value outside the data an IndexError, the rest a RuntimeError
+    if kind in ("domain", "invalid_argument"):
+        raise ValueError(message)
+    if kind == "out_of_bounds":
+        raise IndexError(message)
+    if kind == "runtime":
+        raise RuntimeError(message)
     if kind == "solver":
         raise SolverRuntimeError(f"{note}: {message}")
     if error.get("type") == "ArgumentError":
@@ -253,12 +267,13 @@ class DartBclibcIntegrationEngineBase(BaseIntegrationEngine):
         dense_output: bool = False,
         **kwargs: Any,
     ) -> HitResult:
-        if dense_output:
-            raise NotImplementedError(
-                f"{type(self).__name__} doesn't support dense_output (dart-bclibc only returns filtered rows)."
-            )
         self.trajectory_count += 1
         props.filter_flags = filter_flags
+        payload: dict[str, Any] = {}
+        if dense_output:
+            # the accepted steps of the integrator; the adaptive methods run at their default tolerances (1e-6)
+            payload["dense"] = True
+            props.calc_step = self.get_calc_step()
         res = self._call(
             "integrate",
             props,
@@ -267,13 +282,17 @@ class DartBclibcIntegrationEngineBase(BaseIntegrationEngine):
             step_ft=_num(range_step_ft),
             time_step=time_step,
             flags=int(filter_flags),
+            **payload,
         )
         records = [_row_to_trajectory_data(r) for r in res["rows"]]
+        base_data = (
+            [_step_to_base_traj_data(r) for r in res["dense_steps"]] if dense_output else None
+        )
         logger.debug(f"dart-bclibc ({self.METHOD}) emitted {len(records)} rows")
         self.integration_step_count += len(records)
         reason = _TERM_REASON_MAP.get(res["reason"])
         error = RangeError(reason, records) if reason is not None else None
-        return HitResult(props, records, None, filter_flags > 0, error)
+        return HitResult(props, records, base_data, filter_flags > 0, error)
 
 
 class DartBclibcRK4Engine(DartBclibcIntegrationEngineBase):

@@ -72,6 +72,9 @@ class AsyncCalculator {
     double timeStep = 0.0,
     int filterFlags = 8, // BCLIBCFFI_TrajFlag.BCLIBCFFI_TRAJ_FLAG_RANGE
     bool raiseRangeError = true,
+    bool denseOutput = false,
+    double relativeTolerance = 1e-6,
+    double absoluteTolerance = 1e-6,
   }) => engine.asyncFire(
     shot: shot,
     trajectoryRange: trajectoryRange,
@@ -79,7 +82,31 @@ class AsyncCalculator {
     timeStep: timeStep,
     filterFlags: filterFlags,
     raiseRangeError: raiseRangeError,
+    denseOutput: denseOutput,
+    relativeTolerance: relativeTolerance,
+    absoluteTolerance: absoluteTolerance,
     method: method,
     config: config,
   );
+
+  /// Async counterpart to [Calculator.getAt].
+  Future<TrajectoryData> getAt(
+    HitResult hit,
+    BcBaseTrajInterpKey key,
+    double value, {
+    double startFromTime = 0.0,
+    int flag = 0,
+  }) => engine.asyncGetAt(
+    hit,
+    key,
+    value,
+    startFromTime: startFromTime,
+    flag: flag,
+    method: method,
+    config: config,
+  );
+
+  /// Async counterpart to [Calculator.getAtDistance].
+  Future<TrajectoryData> getAtDistance(HitResult hit, Distance distance) =>
+      engine.asyncGetAtDistance(hit, distance, method, config);
 }

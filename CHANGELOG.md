@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-19
+
+The C ABI of bclibc 2.2 (pin below), and what it makes possible: typed errors, and dense output from the engine up to
+`Calculator` / `AsyncCalculator`, on the native and the web backend.
+
+### Added
+- Dense output, on the native and the web backend: `BcEngine.integrateDenseShot` returns the filtered rows and the accepted steps
+  of the integrator (`BcDenseResult`, with `BcStepStats` for the adaptive methods, which take `relativeTolerance` and
+  `absoluteTolerance`), for every integration method; `denseGetAt`, `denseGetAtSlantHeight` and `trajectoryDataFromStep` work on
+  those steps (the interpolation is the library's). The py-ballisticcalc driver (`python/`) supports `dense_output` with it.
+- `BcException.kind` (`BcErrorKind`) and the fields of the kinds bclibc 2.2 tells apart: `outOfBounds` (`requestedValue`,
+  `minimumValue`, `maximumValue`) and `domain` (`lhs`, `rhs`), next to `outOfRange` and `zeroFinding`. The native and the web
+  backend build the exception in one place (`BcException.fromStatus`). The bridge of the py-ballisticcalc driver reports the
+  kinds, and the driver raises what the Cython layer does for them (`ValueError`, `IndexError`, `RuntimeError`).
+
+- `Calculator.fire` / `AsyncCalculator.fire` take `denseOutput` (and `relativeTolerance` / `absoluteTolerance` for the adaptive
+  methods): the `HitResult` then carries the integrator steps (`HitResult.denseSteps`). `Calculator.getAt` and
+  `getAtDistance` (and the async ones) interpolate in them, by the library, and turn the step into a full record; without
+  dense output `getAtDistance` interpolates between the rows (three-point PCHIP through the rows around the distance,
+  `BcEngine.interpolateTrajectoryData`) instead of returning the nearest row, which `HitResult.getAtDistance` still does.
+
+### Changed
+- Pin `bclibc` to `v2.2.0` (bclibc #51): the C ABI tells the kinds of error apart
+  (`BCLIBCFFI_ERR_DOMAIN`, `_INVALID_ARGUMENT`, `_OUT_OF_BOUNDS`, `_LOGIC`, `_RUNTIME`; they were all `_GENERIC`), and has a
+  growable trajectory buffer and the interpolation over points (`BCLIBCFFI_BaseTrajBuf`, `BCLIBCFFI_base_traj_*`). The embedded wasm
+  module is rebuilt from it and the FFI bindings are regenerated (additive: nothing in the package calls the new functions yet).
+- The web layer: `BCLIBCFFI_get_layout` returns 100 values (was 96: `BCLIBCFFI_BaseTrajBuf` is appended), and `BcLibCWeb.open` checks
+  the exact count.
+
 ## [2.0.1] - 2026-11-18
 
 ### Changed
@@ -444,7 +473,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-rc.1...v2.0.0
 [2.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-beta.1...v2.0.0-rc.1

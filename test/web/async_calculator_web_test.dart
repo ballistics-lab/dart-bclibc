@@ -78,4 +78,62 @@ void main() {
       },
     );
   });
+
+  group('AsyncCalculator dense output (web)', () {
+    test('fire with dense output, getAt and getAtDistance', () async {
+      final asyncCalc = AsyncCalculator();
+      final hit = await asyncCalc.fire(
+        shot: _makeShot(),
+        trajectoryRange: Distance.meter(1000),
+        trajectoryStep: Distance.meter(100),
+        denseOutput: true,
+      );
+      expect(hit.denseSteps, isNotEmpty);
+      expect(hit.denseSteps!.length, greaterThan(hit.length));
+
+      final at = await asyncCalc.getAtDistance(hit, Distance.meter(150));
+      expect(at.distance.in_(Unit.meter), closeTo(150, 1e-6));
+      final t = hit.denseSteps![2].time;
+      final byTime = await asyncCalc.getAt(hit, BcBaseTrajInterpKey.time, t);
+      expect(byTime.time, closeTo(t, 1e-12));
+    });
+
+    test('without dense output getAtDistance interpolates the rows', () async {
+      final asyncCalc = AsyncCalculator();
+      final hit = await asyncCalc.fire(
+        shot: _makeShot(),
+        trajectoryRange: Distance.meter(1000),
+        trajectoryStep: Distance.meter(100),
+      );
+      final at = await asyncCalc.getAtDistance(hit, Distance.meter(150));
+      expect(at.distance.in_(Unit.meter), closeTo(150, 1e-6));
+      await expectLater(
+        asyncCalc.getAt(hit, BcBaseTrajInterpKey.time, 0.1),
+        throwsStateError,
+      );
+    });
+
+    test(
+      'a value beyond the dense output is a typed outOfBounds error',
+      () async {
+        final asyncCalc = AsyncCalculator();
+        final hit = await asyncCalc.fire(
+          shot: _makeShot(),
+          trajectoryRange: Distance.meter(500),
+          trajectoryStep: Distance.meter(100),
+          denseOutput: true,
+        );
+        await expectLater(
+          asyncCalc.getAt(hit, BcBaseTrajInterpKey.time, 1e6),
+          throwsA(
+            isA<BcException>().having(
+              (e) => e.kind,
+              'kind',
+              BcErrorKind.outOfBounds,
+            ),
+          ),
+        );
+      },
+    );
+  });
 }

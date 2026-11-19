@@ -16,4 +16,4 @@ make py-test                           # all six methods
 
 `DART_BCLIBC_BRIDGE` replaces the bridge command, `DART_BCLIBC_ROOT` the checkout it runs from.
 Tests that are specific to other engines (Cash-Karp, DOPRI, Tsitouras classes of the Cython package) skip
-themselves, and `dense_output` is not supported: the package returns filtered rows only.
+themselves; `dense_output` is supported (the accepted steps of the integrator, `BcEngine.integrateDenseShot`).

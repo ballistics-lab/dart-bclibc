@@ -178,7 +178,12 @@ class _Layout {
   int get zeroInitTargetYFt => v[94];
   int get zeroInitStartHeightFt => v[95];
 
-  static const int fieldCount = 96;
+  int get baseTrajBufSize => v[96];
+  int get baseTrajBufData => v[97];
+  int get baseTrajBufCount => v[98];
+  int get baseTrajBufCapacity => v[99];
+
+  static const int fieldCount = 100;
 }
 
 // ============================================================================
@@ -402,7 +407,6 @@ BcBaseTrajData _readBaseTraj(ByteData bd, int base, _Layout l) =>
     );
 
 Never _throwFromError(ByteData bd, int errPtr, _Layout l) {
-  final code = bd.getInt32(errPtr + l.errorCode, Endian.little);
   final msgStart = errPtr + l.errorMessage;
   final bytes = <int>[];
   for (var i = 0; i < 512; i++) {
@@ -410,33 +414,70 @@ Never _throwFromError(ByteData bd, int errPtr, _Layout l) {
     if (b == 0) break;
     bytes.add(b);
   }
-  final message = utf8.decode(bytes);
-
-  const errOutOfRange = 2; // BCLIBCFFI_ERR_OUT_OF_RANGE
-  const errZeroFinding = 3; // BCLIBCFFI_ERR_ZERO_FINDING
-  if (code == errOutOfRange) {
-    throw BcException(
-      code: code,
-      message: message,
-      requestedDistanceFt: bd.getFloat64(errPtr + l.errorF64_0, Endian.little),
-      maxRangeFt: bd.getFloat64(errPtr + l.errorF64_1, Endian.little),
-      lookAngleRad: bd.getFloat64(errPtr + l.errorF64_2, Endian.little),
-    );
-  }
-  if (code == errZeroFinding) {
-    throw BcException(
-      code: code,
-      message: message,
-      zeroFindingError: bd.getFloat64(errPtr + l.errorF64_0, Endian.little),
-      lastBarrelElevationRad: bd.getFloat64(
-        errPtr + l.errorF64_1,
-        Endian.little,
-      ),
-      iterationsCount: bd.getInt32(errPtr + l.errorI32_0, Endian.little),
-    );
-  }
-  throw BcException(code: code, message: message);
+  throw BcException.fromStatus(
+    code: bd.getInt32(errPtr + l.errorCode, Endian.little),
+    message: utf8.decode(bytes),
+    f64_0: bd.getFloat64(errPtr + l.errorF64_0, Endian.little),
+    f64_1: bd.getFloat64(errPtr + l.errorF64_1, Endian.little),
+    f64_2: bd.getFloat64(errPtr + l.errorF64_2, Endian.little),
+    i32_0: bd.getInt32(errPtr + l.errorI32_0, Endian.little),
+  );
 }
+
+void _writeRequest(ByteData bd, int reqPtr, _Layout l, BcTrajectoryRequest r) {
+  bd.setFloat64(reqPtr + l.reqRangeLimitFt, r.rangeLimitFt, Endian.little);
+  bd.setFloat64(reqPtr + l.reqRangeStepFt, r.rangeStepFt, Endian.little);
+  bd.setFloat64(reqPtr + l.reqTimeStep, r.timeStep, Endian.little);
+  bd.setInt32(reqPtr + l.reqFilterFlags, r.filterFlags, Endian.little);
+}
+
+void _writeTrajData(ByteData bd, int base, _Layout l, BcTrajectoryData d) {
+  bd.setFloat64(base + l.trajTime, d.time, Endian.little);
+  bd.setFloat64(base + l.trajDistanceFt, d.distanceFt, Endian.little);
+  bd.setFloat64(base + l.trajVelocityFps, d.velocityFps, Endian.little);
+  bd.setFloat64(base + l.trajMach, d.mach, Endian.little);
+  bd.setFloat64(base + l.trajHeightFt, d.heightFt, Endian.little);
+  bd.setFloat64(base + l.trajSlantHeightFt, d.slantHeightFt, Endian.little);
+  bd.setFloat64(base + l.trajDropAngleRad, d.dropAngleRad, Endian.little);
+  bd.setFloat64(base + l.trajWindageFt, d.windageFt, Endian.little);
+  bd.setFloat64(base + l.trajWindageAngleRad, d.windageAngleRad, Endian.little);
+  bd.setFloat64(base + l.trajSlantDistanceFt, d.slantDistanceFt, Endian.little);
+  bd.setFloat64(base + l.trajAngleRad, d.angleRad, Endian.little);
+  bd.setFloat64(base + l.trajDensityRatio, d.densityRatio, Endian.little);
+  bd.setFloat64(base + l.trajDrag, d.drag, Endian.little);
+  bd.setFloat64(base + l.trajEnergyFtLb, d.energyFtLb, Endian.little);
+  bd.setFloat64(base + l.trajOgwLb, d.ogwLb, Endian.little);
+  bd.setInt32(base + l.trajFlag, d.flag, Endian.little);
+}
+
+void _writeBaseTraj(ByteData bd, int base, _Layout l, BcBaseTrajData s) {
+  bd.setFloat64(base + l.baseTrajTime, s.time, Endian.little);
+  bd.setFloat64(base + l.baseTrajPx, s.px, Endian.little);
+  bd.setFloat64(base + l.baseTrajPy, s.py, Endian.little);
+  bd.setFloat64(base + l.baseTrajPz, s.pz, Endian.little);
+  bd.setFloat64(base + l.baseTrajVx, s.vx, Endian.little);
+  bd.setFloat64(base + l.baseTrajVy, s.vy, Endian.little);
+  bd.setFloat64(base + l.baseTrajVz, s.vz, Endian.little);
+  bd.setFloat64(base + l.baseTrajMach, s.mach, Endian.little);
+}
+
+/// The steps as an array in the module's memory (0, a NULL pointer, for none: the library answers an empty stream
+/// itself). The memory is the [arena]'s.
+int _writeSteps(_WasmArena arena, _Layout l, List<BcBaseTrajData> steps) {
+  if (steps.isEmpty) return 0;
+  final ptr = arena.malloc(steps.length * l.baseTrajSize);
+  // after the last allocation: malloc may have grown (and detached) the memory
+  final bd = _heap(arena.module);
+  for (var i = 0; i < steps.length; i++) {
+    _writeBaseTraj(bd, ptr + i * l.baseTrajSize, l, steps[i]);
+  }
+  return ptr;
+}
+
+/// A call with a mix of integer (pointer, enum) and double arguments: JavaScript has one number type.
+int _callMixed(JSObject module, String name, List<num> args) => module
+    .callMethodVarArgs<JSNumber>(name.toJS, [for (final a in args) a.toJS])
+    .toDartInt;
 
 // ============================================================================
 // Main API class
@@ -596,26 +637,7 @@ class BcLibCWeb implements BcEngine {
 
     // After the last allocation: malloc may have grown (and detached) the memory.
     final bd = _heap(_module);
-    bd.setFloat64(
-      reqPtr + _layout.reqRangeLimitFt,
-      request.rangeLimitFt,
-      Endian.little,
-    );
-    bd.setFloat64(
-      reqPtr + _layout.reqRangeStepFt,
-      request.rangeStepFt,
-      Endian.little,
-    );
-    bd.setFloat64(
-      reqPtr + _layout.reqTimeStep,
-      request.timeStep,
-      Endian.little,
-    );
-    bd.setInt32(
-      reqPtr + _layout.reqFilterFlags,
-      request.filterFlags,
-      Endian.little,
-    );
+    _writeRequest(bd, reqPtr, _layout, request);
 
     final st = _call(_module, 'BCLIBCFFI_integrate_shot', [
       shotPtr,
@@ -674,6 +696,205 @@ class BcLibCWeb implements BcEngine {
       _readBaseTraj(bd2, outPtr + _layout.interceptionRawData, _layout),
       _readTrajData(bd2, outPtr + _layout.interceptionFullData, _layout),
     );
+  });
+
+  // ── Dense output (the accepted steps of the integrator) ───────────────────
+
+  @override
+  BcDenseResult integrateDenseShot(
+    BcShot shot,
+    BcTrajectoryRequest request, {
+    double relativeTolerance = 1e-6,
+    double absoluteTolerance = 1e-6,
+  }) => _using(_module, (arena) {
+    final shotPtr = _fillShot(arena, _layout, shot);
+    final reqPtr = arena.malloc(_layout.reqSize);
+    final outRecordsPtrPtr = arena.malloc(4);
+    final outCountPtr = arena.malloc(4);
+    final outDensePtrPtr = arena.malloc(4);
+    final outDenseCountPtr = arena.malloc(4);
+    final outReasonPtr = arena.malloc(4);
+    final statsPtr = arena.malloc(_layout.stepStatsSize);
+    final errPtr = arena.malloc(_layout.errorSize);
+
+    // After the last allocation: malloc may have grown (and detached) the memory.
+    _writeRequest(_heap(_module), reqPtr, _layout, request);
+
+    final adaptive = shot.method.isAdaptive;
+    final st = adaptive
+        ? _callMixed(_module, 'BCLIBCFFI_integrate_adaptive_shot', [
+            shotPtr,
+            shot.method.value,
+            relativeTolerance,
+            absoluteTolerance,
+            reqPtr,
+            1, // want_dense
+            outRecordsPtrPtr,
+            outCountPtr,
+            outDensePtrPtr,
+            outDenseCountPtr,
+            outReasonPtr,
+            statsPtr,
+            errPtr,
+          ])
+        : _callMixed(_module, 'BCLIBCFFI_integrate_dense_shot', [
+            shotPtr,
+            reqPtr,
+            1, // want_dense
+            outRecordsPtrPtr,
+            outCountPtr,
+            outDensePtrPtr,
+            outDenseCountPtr,
+            outReasonPtr,
+            errPtr,
+          ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+
+    final bd = _heap(_module);
+    final recordsPtr = bd.getInt32(outRecordsPtrPtr, Endian.little);
+    final count = bd.getInt32(outCountPtr, Endian.little);
+    final densePtr = bd.getInt32(outDensePtrPtr, Endian.little);
+    final denseCount = bd.getInt32(outDenseCountPtr, Endian.little);
+    final reason = bd.getInt32(outReasonPtr, Endian.little);
+
+    try {
+      return BcDenseResult(
+        [
+          for (var i = 0; i < count; i++)
+            _readTrajData(bd, recordsPtr + i * _layout.trajSize, _layout),
+        ],
+        BcTerminationReason.fromValue(reason),
+        [
+          for (var i = 0; i < denseCount; i++)
+            _readBaseTraj(bd, densePtr + i * _layout.baseTrajSize, _layout),
+        ],
+        adaptive
+            ? BcStepStats(
+                bd.getInt32(
+                  statsPtr + _layout.stepStatsAccepted,
+                  Endian.little,
+                ),
+                bd.getInt32(
+                  statsPtr + _layout.stepStatsRejected,
+                  Endian.little,
+                ),
+              )
+            : null,
+      );
+    } finally {
+      if (count > 0) {
+        _module.callMethodVarArgs<JSAny?>('BCLIBCFFI_free_trajectory'.toJS, [
+          recordsPtr.toJS,
+        ]);
+      }
+      if (denseCount > 0) {
+        _module.callMethodVarArgs<JSAny?>(
+          'BCLIBCFFI_free_base_trajectory'.toJS,
+          [densePtr.toJS],
+        );
+      }
+    }
+  });
+
+  @override
+  BcBaseTrajData denseGetAt(
+    List<BcBaseTrajData> steps,
+    BcBaseTrajInterpKey key,
+    double value, {
+    double startFromTime = 0.0,
+  }) => _using(_module, (arena) {
+    final stepsPtr = _writeSteps(arena, _layout, steps);
+    final outPtr = arena.malloc(_layout.baseTrajSize);
+    final errPtr = arena.malloc(_layout.errorSize);
+    final st = _callMixed(_module, 'BCLIBCFFI_dense_get_at', [
+      stepsPtr,
+      steps.length,
+      key.value,
+      value,
+      startFromTime,
+      outPtr,
+      errPtr,
+    ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+    return _readBaseTraj(_heap(_module), outPtr, _layout);
+  });
+
+  @override
+  BcBaseTrajData denseGetAtSlantHeight(
+    List<BcBaseTrajData> steps,
+    double lookAngleRad,
+    double value,
+  ) => _using(_module, (arena) {
+    final stepsPtr = _writeSteps(arena, _layout, steps);
+    final outPtr = arena.malloc(_layout.baseTrajSize);
+    final errPtr = arena.malloc(_layout.errorSize);
+    final st = _callMixed(_module, 'BCLIBCFFI_dense_get_at_slant_height', [
+      stepsPtr,
+      steps.length,
+      lookAngleRad,
+      value,
+      outPtr,
+      errPtr,
+    ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+    return _readBaseTraj(_heap(_module), outPtr, _layout);
+  });
+
+  @override
+  BcTrajectoryData trajectoryDataFromStep(
+    BcShot shot,
+    BcBaseTrajData step, {
+    int flag = 0,
+  }) => _using(_module, (arena) {
+    final shotPtr = _fillShot(arena, _layout, shot);
+    final stepPtr = arena.malloc(_layout.baseTrajSize);
+    final outPtr = arena.malloc(_layout.trajSize);
+    final errPtr = arena.malloc(_layout.errorSize);
+    _writeBaseTraj(_heap(_module), stepPtr, _layout, step);
+    final st = _callMixed(_module, 'BCLIBCFFI_trajectory_data_from_step_shot', [
+      shotPtr,
+      stepPtr,
+      flag,
+      outPtr,
+      errPtr,
+    ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+    return _readTrajData(_heap(_module), outPtr, _layout);
+  });
+
+  @override
+  BcTrajectoryData interpolateTrajectoryData(
+    BcTrajectoryInterpKey key,
+    double value,
+    BcTrajectoryData t0,
+    BcTrajectoryData t1,
+    BcTrajectoryData t2, {
+    int flag = 0,
+    BcInterpMethod method = BcInterpMethod.pchip,
+  }) => _using(_module, (arena) {
+    final p0 = arena.malloc(_layout.trajSize);
+    final p1 = arena.malloc(_layout.trajSize);
+    final p2 = arena.malloc(_layout.trajSize);
+    final outPtr = arena.malloc(_layout.trajSize);
+    final errPtr = arena.malloc(_layout.errorSize);
+    // after the last allocation: malloc may have grown (and detached) the memory
+    final bd = _heap(_module);
+    _writeTrajData(bd, p0, _layout, t0);
+    _writeTrajData(bd, p1, _layout, t1);
+    _writeTrajData(bd, p2, _layout, t2);
+    final st = _callMixed(_module, 'BCLIBCFFI_interpolate_trajectory_data', [
+      key.value,
+      value,
+      p0,
+      p1,
+      p2,
+      flag,
+      method.value,
+      outPtr,
+      errPtr,
+    ]);
+    if (st != 0) _throwFromError(_heap(_module), errPtr, _layout);
+    return _readTrajData(_heap(_module), outPtr, _layout);
   });
 }
 
