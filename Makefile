@@ -16,7 +16,7 @@ ffigen: submodule
 
 # Native (dart:ffi) tests; the build hook compiles the library on the way.
 test: submodule
-	dart pub get --no-example && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart
+	dart pub get --no-example && dart test test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart test/async_calculator_test.dart test/dense_calculator_test.dart
 
 # py-ballisticcalc's own test suite against this package, once per integration method
 # (rk4 euler verlet rkck dopri tsitouras), through tool/py_bridge. Needs python >= 3.11 with

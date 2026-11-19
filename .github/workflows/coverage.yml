@@ -56,7 +56,7 @@ jobs:
           dart test --coverage=coverage/raw/native
           --exclude-tags=browser
           test/ffi_test.dart test/hit_result_test.dart test/unit_test.dart
-          test/async_calculator_test.dart test/hook_test.dart
+          test/async_calculator_test.dart test/dense_calculator_test.dart test/hook_test.dart
 
       - name: Upload coverage data
         if: ${{ !cancelled() }} # keep coverage data even if a test fails

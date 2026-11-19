@@ -97,6 +97,11 @@ void main() {
       );
     });
 
+    test('a distance between the last two rows uses the last three rows', () {
+      final at = calc.getAtDistance(fire(), Distance.meter(950));
+      expect(_m(at.distance), closeTo(950, 1e-6));
+    });
+
     test('a row at the distance is returned as it is', () {
       final hit = fire();
       final at = calc.getAtDistance(hit, Distance.meter(300));
