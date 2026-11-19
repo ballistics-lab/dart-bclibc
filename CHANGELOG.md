@@ -29,7 +29,7 @@ The C ABI of bclibc 2.2 (pin below), and what it makes possible: typed errors, a
   `BcEngine.interpolateTrajectoryData`) instead of returning the nearest row, which `HitResult.getAtDistance` still does.
 
 ### Changed
-- Pin `bclibc` to `v2.1.0-3-g10b5d05` (bclibc PR #51, towards 2.2.0): the C ABI tells the kinds of error apart
+- Pin `bclibc` to `v2.1.0-3-gae72b61` (bclibc PR #51, towards 2.2.0): the C ABI tells the kinds of error apart
   (`BCLIBCFFI_ERR_DOMAIN`, `_INVALID_ARGUMENT`, `_OUT_OF_BOUNDS`, `_LOGIC`, `_RUNTIME`; they were all `_GENERIC`), and has a
   growable trajectory buffer and the interpolation over points (`BCLIBCFFI_BaseTrajBuf`, `BCLIBCFFI_base_traj_*`). The embedded wasm
   module is rebuilt from it and the FFI bindings are regenerated (additive: nothing in the package calls the new functions yet).
