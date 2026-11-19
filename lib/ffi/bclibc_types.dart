@@ -72,6 +72,39 @@ enum BcBaseTrajInterpKey {
   const BcBaseTrajInterpKey(this.value);
 }
 
+/// The field of a [BcTrajectoryData] row that is the independent variable of [BcEngine.interpolateTrajectoryData]
+/// (`BCLIBCFFI_TrajectoryInterpKey`).
+enum BcTrajectoryInterpKey {
+  time(0),
+  distance(1),
+  velocity(2),
+  mach(3),
+  height(4),
+  slantHeight(5),
+  dropAngle(6),
+  windage(7),
+  windageAngle(8),
+  slantDistance(9),
+  angle(10),
+  densityRatio(11),
+  drag(12),
+  energy(13),
+  ogw(14),
+  flag(15);
+
+  final int value;
+  const BcTrajectoryInterpKey(this.value);
+}
+
+/// `BCLIBCFFI_InterpMethod`.
+enum BcInterpMethod {
+  pchip(0),
+  linear(1);
+
+  final int value;
+  const BcInterpMethod(this.value);
+}
+
 // ============================================================================
 // Dart-side value types
 // ============================================================================
@@ -341,6 +374,19 @@ abstract class BcEngine {
     double lookAngleRad,
     double value,
   );
+
+  /// The row where [key] has the value [value], interpolated from three rows ([t0], [t1], [t2], ordered by the key:
+  /// what [BcDenseResult.trajectory] and [BcHitResult.trajectory] hold). Every field is interpolated, the key field is
+  /// set to [value] and [flag] is the flag of the result. Two rows with the same key is a [BcErrorKind.domain] error.
+  BcTrajectoryData interpolateTrajectoryData(
+    BcTrajectoryInterpKey key,
+    double value,
+    BcTrajectoryData t0,
+    BcTrajectoryData t1,
+    BcTrajectoryData t2, {
+    int flag,
+    BcInterpMethod method,
+  });
 
   /// The full record (distance, drop, windage, energy, ...) of one dense [step], with the atmosphere, drag and Coriolis
   /// data of [shot]; [flag] is the `BCLIBCFFI_TrajFlag` value stored in it.

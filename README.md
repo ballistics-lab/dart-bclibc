@@ -165,6 +165,29 @@ final result = await AsyncCalculator().fire(
 );
 ```
 
+### Dense output and points between the rows
+
+`fire` returns the rows you asked for (every `trajectoryStep`, and the events). With `denseOutput: true` the result also
+carries the accepted steps of the integrator (`HitResult.denseSteps`), and `getAt` / `getAtDistance` interpolate in them
+(the interpolation is bclibc's, the same on the native and the web backend) and give a full record at any point:
+
+```dart
+final calc = Calculator(method: BcIntegrationMethod.dopri); // or AsyncCalculator()
+final hit = calc.fire(
+  shot: shot,
+  trajectoryRange: Distance.meter(1000),
+  trajectoryStep: Distance.meter(100),
+  denseOutput: true, // the adaptive methods also take relativeTolerance / absoluteTolerance (default 1e-6)
+);
+
+final at150 = calc.getAtDistance(hit, Distance.meter(150));              // downrange
+final at1s = calc.getAt(hit, BcBaseTrajInterpKey.time, 1.0);             // any BcBaseTrajInterpKey
+```
+
+Without `denseOutput`, `getAtDistance` interpolates between the rows (three-point PCHIP through the rows around the
+distance), and `getAt` throws a `StateError`; a distance outside the rows is a `RangeError`. `HitResult.getAtDistance` is
+the nearest row, not an interpolation. A key the trajectory does not reach is a `BcException` of kind `outOfBounds`.
+
 ---
 
 ## Atmosphere and Coriolis

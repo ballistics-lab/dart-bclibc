@@ -153,6 +153,25 @@ void _fillBaseTraj(BCLIBCFFI_BaseTrajData d, BcBaseTrajData s) {
   d.mach = s.mach;
 }
 
+void _fillTraj(BCLIBCFFI_TrajectoryData d, BcTrajectoryData s) {
+  d.time = s.time;
+  d.distance_ft = s.distanceFt;
+  d.velocity_fps = s.velocityFps;
+  d.mach = s.mach;
+  d.height_ft = s.heightFt;
+  d.slant_height_ft = s.slantHeightFt;
+  d.drop_angle_rad = s.dropAngleRad;
+  d.windage_ft = s.windageFt;
+  d.windage_angle_rad = s.windageAngleRad;
+  d.slant_distance_ft = s.slantDistanceFt;
+  d.angle_rad = s.angleRad;
+  d.density_ratio = s.densityRatio;
+  d.drag = s.drag;
+  d.energy_ft_lb = s.energyFtLb;
+  d.ogw_lb = s.ogwLb;
+  d.flag = s.flag;
+}
+
 /// The steps as a C array in the [arena]; NULL for none (the library answers an empty stream itself).
 ffi.Pointer<BCLIBCFFI_BaseTrajData> _stepsToNative(
   List<BcBaseTrajData> steps,
@@ -449,6 +468,39 @@ class BcLibC implements BcEngine {
       p,
       stepPtr,
       flag,
+      out,
+      err,
+    );
+    if (st != 0) _throwFromError(err.ref);
+    return _trajDataFromNative(out.ref);
+  });
+
+  @override
+  BcTrajectoryData interpolateTrajectoryData(
+    BcTrajectoryInterpKey key,
+    double value,
+    BcTrajectoryData t0,
+    BcTrajectoryData t1,
+    BcTrajectoryData t2, {
+    int flag = 0,
+    BcInterpMethod method = BcInterpMethod.pchip,
+  }) => using((arena) {
+    final p0 = arena<BCLIBCFFI_TrajectoryData>();
+    final p1 = arena<BCLIBCFFI_TrajectoryData>();
+    final p2 = arena<BCLIBCFFI_TrajectoryData>();
+    final out = arena<BCLIBCFFI_TrajectoryData>();
+    final err = arena<BCLIBCFFI_Error>();
+    _fillTraj(p0.ref, t0);
+    _fillTraj(p1.ref, t1);
+    _fillTraj(p2.ref, t2);
+    final st = BCLIBCFFI_interpolate_trajectory_data(
+      key.value,
+      value,
+      p0,
+      p1,
+      p2,
+      flag,
+      method.value,
       out,
       err,
     );

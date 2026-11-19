@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-19
+
+The C ABI of bclibc 2.2 (pin below), and what it makes possible: typed errors, and dense output from the engine up to
+`Calculator` / `AsyncCalculator`, on the native and the web backend.
+
 ### Added
 - Dense output, on the native and the web backend: `BcEngine.integrateDenseShot` returns the filtered rows and the accepted steps
   of the integrator (`BcDenseResult`, with `BcStepStats` for the adaptive methods, which take `relativeTolerance` and
@@ -16,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `minimumValue`, `maximumValue`) and `domain` (`lhs`, `rhs`), next to `outOfRange` and `zeroFinding`. The native and the web
   backend build the exception in one place (`BcException.fromStatus`). The bridge of the py-ballisticcalc driver reports the
   kinds, and the driver raises what the Cython layer does for them (`ValueError`, `IndexError`, `RuntimeError`).
+
+- `Calculator.fire` / `AsyncCalculator.fire` take `denseOutput` (and `relativeTolerance` / `absoluteTolerance` for the adaptive
+  methods): the `HitResult` then carries the integrator steps (`HitResult.denseSteps`). `Calculator.getAt` and
+  `getAtDistance` (and the async ones) interpolate in them, by the library, and turn the step into a full record; without
+  dense output `getAtDistance` interpolates between the rows (three-point PCHIP through the rows around the distance,
+  `BcEngine.interpolateTrajectoryData`) instead of returning the nearest row, which `HitResult.getAtDistance` still does.
 
 ### Changed
 - Pin `bclibc` to `v2.1.0-3-g10b5d05` (bclibc PR #51, towards 2.2.0): the C ABI tells the kinds of error apart
@@ -462,7 +473,8 @@ First public release as a standalone package.
   2. pre-installed library found → use it (Flatpak `/app/lib`)
   3. fallback → `FetchContent` from GitHub (git dep via `dart pub get`)
 
-[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-rc.1...v2.0.0
 [2.0.0-rc.1]: https://github.com/ballistics-lab/dart-bclibc/compare/v2.0.0-beta.1...v2.0.0-rc.1

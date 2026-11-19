@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:bclibc/ffi/bclibc_types.dart' show BcBaseTrajData;
 import 'package:bclibc/src/unit.dart';
 import 'package:bclibc/src/shot.dart';
 
@@ -112,12 +113,18 @@ class HitResult extends Iterable<TrajectoryData> {
   final int filterFlags;
   final Exception? error;
 
+  /// The accepted steps of the integrator (dense output), in time order; null unless the shot was fired with
+  /// `denseOutput: true`. `Calculator.getAt` / `getAtDistance` interpolate in them (the interpolation is the library's).
+  final List<BcBaseTrajData>? denseSteps;
+
   HitResult(
     this.shot,
     List<TrajectoryData> records, {
     this.filterFlags = 0,
     this.error,
-  }) : records = List.unmodifiable(records);
+    List<BcBaseTrajData>? denseSteps,
+  }) : records = List.unmodifiable(records),
+       denseSteps = denseSteps == null ? null : List.unmodifiable(denseSteps);
 
   /// Exact physical event roots (ZERO, MACH, APEX, and MRT).
   late final List<TrajectoryData> events = List.unmodifiable(
@@ -197,6 +204,9 @@ class HitResult extends Iterable<TrajectoryData> {
     return null;
   }
 
+  /// The first row at or beyond [d] (the last row when [d] is beyond them): the nearest row, not an interpolated
+  /// point. `Calculator.getAtDistance` interpolates, in the dense output of the integrator when there is one and between
+  /// the rows otherwise.
   TrajectoryData getAtDistance(Distance d) {
     final target = d.in_(Unit.foot);
     final index = records.indexWhere(
