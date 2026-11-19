@@ -178,7 +178,12 @@ class _Layout {
   int get zeroInitTargetYFt => v[94];
   int get zeroInitStartHeightFt => v[95];
 
-  static const int fieldCount = 96;
+  int get baseTrajBufSize => v[96];
+  int get baseTrajBufData => v[97];
+  int get baseTrajBufCount => v[98];
+  int get baseTrajBufCapacity => v[99];
+
+  static const int fieldCount = 100;
 }
 
 // ============================================================================

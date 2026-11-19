@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Pin `bclibc` to `v2.1.0-3-g10b5d05` (bclibc PR #51, towards 2.2.0): the C ABI tells the kinds of error apart
+  (`BCLIBCFFI_ERR_DOMAIN`, `_INVALID_ARGUMENT`, `_OUT_OF_BOUNDS`, `_LOGIC`, `_RUNTIME`; they were all `_GENERIC`), and has a
+  growable trajectory buffer and the interpolation over points (`BCLIBCFFI_BaseTrajBuf`, `BCLIBCFFI_base_traj_*`). The embedded wasm
+  module is rebuilt from it and the FFI bindings are regenerated (additive: nothing in the package calls the new functions yet).
+- The web layer: `BCLIBCFFI_get_layout` returns 100 values (was 96: `BCLIBCFFI_BaseTrajBuf` is appended), and `BcLibCWeb.open` checks
+  the exact count.
+
 ## [2.0.1] - 2026-11-18
 
 ### Changed

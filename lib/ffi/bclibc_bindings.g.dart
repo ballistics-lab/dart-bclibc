@@ -15,6 +15,78 @@ library;
 
 import 'dart:ffi' as ffi;
 
+/// Appends a copy of *item; the capacity doubles when the buffer is full.
+/// @return BCLIBCFFI_OK; BCLIBCFFI_ERR_INVALID_ARGUMENT for a NULL buf or item; BCLIBCFFI_ERR_RUNTIME when the memory
+/// cannot be had or the count would exceed INT32_MAX (the buffer is left as it was).
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_BaseTrajBuf>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_base_traj_buf_append(
+  ffi.Pointer<BCLIBCFFI_BaseTrajBuf> buf,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> item,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// Releases the memory; the buffer is empty again and can be reused. NULL is ignored.
+@ffi.Native<ffi.Void Function(ffi.Pointer<BCLIBCFFI_BaseTrajBuf>)>()
+external void BCLIBCFFI_base_traj_buf_free(
+  ffi.Pointer<BCLIBCFFI_BaseTrajBuf> buf,
+);
+
+/// The point where `key` is `value`, through three points (BCLIBC_BaseTrajData::interpolate): every field is
+/// interpolated (PCHIP), except time and mach, which are set to `value` when they are the key.
+/// @return BCLIBCFFI_OK, BCLIBCFFI_ERR_DOMAIN when two of the points have the same key value (f64_0, f64_1 are
+/// the first two key values), BCLIBCFFI_ERR_INVALID_ARGUMENT for a NULL point or an unknown key.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_base_traj_interpolate(
+  int key,
+  double value,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> p0,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> p1,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> p2,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
+/// The same through the points idx-1, idx, idx+1 of `steps` (BCLIBC_BaseTrajSeq::interpolate_at). A negative idx
+/// counts from the end; the valid range is [1, count-2].
+/// @return BCLIBCFFI_OK, BCLIBCFFI_ERR_OUT_OF_BOUNDS for an idx outside it (f64_0 = idx after the correction of a
+/// negative one, f64_1 = 1, f64_2 = count-2), BCLIBCFFI_ERR_DOMAIN for equal key values.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Int32,
+    ffi.Int64,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<BCLIBCFFI_BaseTrajData>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_base_traj_interpolate_at(
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> steps,
+  int count,
+  int idx,
+  int key,
+  double value,
+  ffi.Pointer<BCLIBCFFI_BaseTrajData> out,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 /// Kinetic energy (ft-lb) from bullet weight (grains) and velocity (fps).
 @ffi.Native<ffi.Double Function(ffi.Double, ffi.Double)>()
 external double BCLIBCFFI_calculate_energy(
@@ -540,7 +612,8 @@ external double BCLIBCFFI_get_correction(double distance_ft, double offset_ft);
 /// layout. See bclibc_ffi.cpp for the fixed field order this fills: the
 /// structs in the order they were added to the ABI, each as its size and the
 /// offsets of its fields, the newest at the end (BCLIBCFFI_StepStats,
-/// BCLIBCFFI_ZeroInit). A struct added later is appended, so no offset moves.
+/// BCLIBCFFI_ZeroInit, BCLIBCFFI_BaseTrajBuf). A struct added later is appended, so no offset moves.
+/// The size of BCLIBCFFI_TrajectoryData in it is the one to use: it is 128 or 124 bytes by the platform.
 ///
 /// @param out      Caller-allocated buffer of at least BCLIBCFFI_LAYOUT_FIELD_COUNT int32s.
 /// @param out_len  Capacity of `out`, in int32 elements.
@@ -972,6 +1045,29 @@ final class BCLIBCFFI_Atmosphere extends ffi.Struct {
     ..ref.cLowestTempC = cLowestTempC;
 }
 
+/// A growing array of points. A zero-initialised one (data NULL, count 0, capacity 0) is empty and ready to use.
+final class BCLIBCFFI_BaseTrajBuf extends ffi.Struct {
+  external ffi.Pointer<BCLIBCFFI_BaseTrajData> data;
+
+  /// < Points in use.
+  @ffi.Int32()
+  external int count;
+
+  /// < Points that fit without growing.
+  @ffi.Int32()
+  external int capacity;
+
+  static ffi.Pointer<BCLIBCFFI_BaseTrajBuf> $allocate(
+    ffi.Allocator $allocator, {
+    required ffi.Pointer<BCLIBCFFI_BaseTrajData> data,
+    required int count,
+    required int capacity,
+  }) => $allocator<BCLIBCFFI_BaseTrajBuf>()
+    ..ref.data = data
+    ..ref.count = count
+    ..ref.capacity = capacity;
+}
+
 final class BCLIBCFFI_BaseTrajData extends ffi.Struct {
   @ffi.Double()
   external double time;
@@ -1168,6 +1264,16 @@ final class BCLIBCFFI_DragPoint extends ffi.Struct {
 }
 
 /// Error output struct – filled by every function on failure.
+///
+/// What f64_0, f64_1, f64_2 and i32_0 hold depends on `code`; the fields a code does not use are 0:
+///
+/// | code                              | f64_0                    | f64_1                      | f64_2           | i32_0            |
+/// |-----------------------------------|--------------------------|----------------------------|-----------------|------------------|
+/// | BCLIBCFFI_ERR_OUT_OF_RANGE        | requested_distance_ft    | max_range_ft               | look_angle_rad  |                  |
+/// | BCLIBCFFI_ERR_ZERO_FINDING        | zero_finding_error       | last_barrel_elevation_rad  |                 | iterations_count |
+/// | BCLIBCFFI_ERR_OUT_OF_BOUNDS       | requested value or index | minimum allowed            | maximum allowed |                  |
+/// | BCLIBCFFI_ERR_DOMAIN              | lhs (first value)        | rhs (second value)         |                 |                  |
+/// | the other codes                   |                          |                            |                 |                  |
 final class BCLIBCFFI_Error extends ffi.Struct {
   /// < BCLIBCFFI_Status
   @ffi.Int32()
@@ -1177,19 +1283,15 @@ final class BCLIBCFFI_Error extends ffi.Struct {
   @ffi.Array.multi([512])
   external ffi.Array<ffi.Char> message;
 
-  /// < OutOfRange: requested_distance_ft / ZeroFinding: zero_finding_error
   @ffi.Double()
   external double f64_0;
 
-  /// < OutOfRange: max_range_ft          / ZeroFinding: last_barrel_elevation_rad
   @ffi.Double()
   external double f64_1;
 
-  /// < OutOfRange: look_angle_rad
   @ffi.Double()
   external double f64_2;
 
-  /// < ZeroFinding: iterations_count
   @ffi.Int32()
   external int i32_0;
 }
@@ -1425,7 +1527,22 @@ enum BCLIBCFFI_Status {
   BCLIBCFFI_ERR_OUT_OF_RANGE(2),
   BCLIBCFFI_ERR_ZERO_FINDING(3),
   BCLIBCFFI_ERR_INTERCEPTION(4),
-  BCLIBCFFI_ERR_GENERIC(5);
+  BCLIBCFFI_ERR_GENERIC(5),
+
+  /// < BCLIBC_DomainError: inputs the operation cannot work with (a degenerate interpolation segment, too few points).
+  BCLIBCFFI_ERR_DOMAIN(6),
+
+  /// < BCLIBC_InvalidArgumentError: an argument is not acceptable (a drag table of fewer than 2 points, an unknown key).
+  BCLIBCFFI_ERR_INVALID_ARGUMENT(7),
+
+  /// < BCLIBC_OutOfRangeError (not a solver's): an index or a value outside the data (a key beyond the trajectory, an index outside [1, n-2]).
+  BCLIBCFFI_ERR_OUT_OF_BOUNDS(8),
+
+  /// < BCLIBC_LogicError: a defect inside the library.
+  BCLIBCFFI_ERR_LOGIC(9),
+
+  /// < BCLIBC_RuntimeError: any other failure at run time (out of memory in BCLIBCFFI_base_traj_buf_append).
+  BCLIBCFFI_ERR_RUNTIME(10);
 
   final int value;
   const BCLIBCFFI_Status(this.value);
@@ -1437,6 +1554,11 @@ enum BCLIBCFFI_Status {
     3 => BCLIBCFFI_ERR_ZERO_FINDING,
     4 => BCLIBCFFI_ERR_INTERCEPTION,
     5 => BCLIBCFFI_ERR_GENERIC,
+    6 => BCLIBCFFI_ERR_DOMAIN,
+    7 => BCLIBCFFI_ERR_INVALID_ARGUMENT,
+    8 => BCLIBCFFI_ERR_OUT_OF_BOUNDS,
+    9 => BCLIBCFFI_ERR_LOGIC,
+    10 => BCLIBCFFI_ERR_RUNTIME,
     _ => throw ArgumentError('Unknown value for BCLIBCFFI_Status: $value'),
   };
 }
@@ -1512,6 +1634,11 @@ enum BCLIBCFFI_TrajFlag {
   };
 }
 
+/// One record of a trajectory: 15 doubles and an int32 flag. Its size is what the compiler makes of that:
+/// 128 bytes where a double is aligned to 8 (x86-64, aarch64, armv7l, Windows, ppc64le, s390x, riscv64) and 124 on
+/// 32-bit x86 Linux (the i386 ABI aligns a double to 4, so there is no tail padding). A binding that reads the
+/// struct as bytes takes the size from BCLIBCFFI_get_layout() (the value after the TrajectoryData block starts), or
+/// checks its own against it when the library is loaded, and does not count it itself.
 final class BCLIBCFFI_TrajectoryData extends ffi.Struct {
   @ffi.Double()
   external double time;
