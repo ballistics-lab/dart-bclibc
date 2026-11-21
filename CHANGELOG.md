@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Pin `bclibc` to `v2.2.1`
+
 ## [2.1.0] - 2026-11-19
 
 The C ABI of bclibc 2.2 (pin below), and what it makes possible: typed errors, and dense output from the engine up to

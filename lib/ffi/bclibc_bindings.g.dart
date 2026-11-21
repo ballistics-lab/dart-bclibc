@@ -805,6 +805,38 @@ external int BCLIBCFFI_integrate_dense_shot(
   ffi.Pointer<BCLIBCFFI_Error> err,
 );
 
+/// @brief BCLIBCFFI_integrate_dense_shot() that also reports its step count in out_stats (when given).
+///
+/// out_stats->accepted is the number of integration steps of the call (the engine's integration_step_count, as the
+/// exts engine reports it); out_stats->rejected is 0, a fixed-step method rejects no step. Filled even when the
+/// integration fails, as for the adaptive entry points.
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Pointer<BCLIBCFFI_Shot>,
+    ffi.Pointer<BCLIBCFFI_TrajectoryRequest>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<BCLIBCFFI_StepStats>,
+    ffi.Pointer<BCLIBCFFI_Error>,
+  )
+>()
+external int BCLIBCFFI_integrate_dense_shot_stats(
+  ffi.Pointer<BCLIBCFFI_Shot> shot,
+  ffi.Pointer<BCLIBCFFI_TrajectoryRequest> request,
+  int want_dense,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_TrajectoryData>> out_records,
+  ffi.Pointer<ffi.Int32> out_count,
+  ffi.Pointer<ffi.Pointer<BCLIBCFFI_BaseTrajData>> out_dense,
+  ffi.Pointer<ffi.Int32> out_dense_count,
+  ffi.Pointer<ffi.Int32> out_reason,
+  ffi.Pointer<BCLIBCFFI_StepStats> out_stats,
+  ffi.Pointer<BCLIBCFFI_Error> err,
+);
+
 @ffi.Native<
   ffi.Int32 Function(
     ffi.Pointer<BCLIBCFFI_Shot>,
@@ -1563,7 +1595,8 @@ enum BCLIBCFFI_Status {
   };
 }
 
-/// Accepted and rejected step counts of the most recent adaptive call.
+/// Accepted and rejected step counts of the most recent call that reports them: an adaptive call, or
+/// BCLIBCFFI_integrate_dense_shot_stats() (fixed-step, rejected is 0).
 final class BCLIBCFFI_StepStats extends ffi.Struct {
   /// < Accepted steps.
   @ffi.Int32()
