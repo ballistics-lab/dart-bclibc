@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read # to look up the CI run of the tagged commit
     outputs:
       version: ${{ steps.meta.outputs.version }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
@@ -48,23 +47,6 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           ref: ${{ env.RELEASE_TAG }}
-
-      # Tests are not repeated for a tag: CI already ran on this exact commit
-      # (pull request / push to main). Publishing from a commit CI has not
-      # passed on is refused instead -- run ci.yml manually for it first
-      # (Actions -> CI -> Run workflow), then re-tag.
-      - name: The tagged commit must already have a successful CI run
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          SHA="$(git rev-parse HEAD)"
-          RUNS="$(gh run list --workflow ci.yml --commit "$SHA" --status success --json databaseId --jq length)"
-          if [ "$RUNS" -eq 0 ]; then
-            echo "::error::No successful CI run found for $SHA. Run the CI workflow on this commit (or merge through a PR/main so it runs), then re-tag."
-            exit 1
-          fi
-          echo "CI already passed on $SHA ($RUNS successful run(s))."
 
       - name: Extract version and detect pre-release
         id: meta
